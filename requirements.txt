@@ -1,0 +1,41 @@
+# --- Core Framework & Server ---
+fastapi>=0.109.0            # Основной веб-фреймворк для API
+uvicorn[standard]>=0.27.0   # ASGI сервер для запуска приложения
+pydantic>=2.5.0             # Валидация данных (схемы DTO, настройки)
+pydantic-settings>=2.1.0    # Управление переменными окружения (.env)
+python-dotenv>=1.0.0        # Загрузка переменных из .env файла
+
+# --- Database (PostgreSQL) ---
+sqlalchemy>=2.0.25          # ORM для работы с базой данных
+alembic>=1.13.1             # Управление миграциями БД (версионирование схемы)
+asyncpg>=0.29.0             # Асинхронный драйвер для PostgreSQL
+psycopg2-binary>=2.9.9      # Синхронный драйвер (нужен для Alembic)
+
+# --- Authentication & Security (Module 1) ---
+python-jose[cryptography]>=3.3.0 # Работа с JWT токенами (login/auth)
+passlib[bcrypt]>=1.7.4      # Хеширование паролей пользователей
+python-multipart>=0.0.6     # Парсинг форм (нужен для OAuth2 login endpoint)
+
+# --- Scraping & Browser Automation (Module 3 - Trans.eu) ---
+playwright>=1.41.0          # Эмуляция браузера для скрапинга Trans.eu (SPA)
+beautifulsoup4>=4.12.3      # Парсинг HTML-кода полученных страниц
+lxml>=5.1.0                 # Быстрый парсер XML/HTML для BS4
+
+# --- Google Services Integration (Module 13 & Maps) ---
+google-api-python-client>=2.116.0 # Библиотека для работы с Google Sheets/Drive
+google-auth-httplib2>=0.2.0       # Аутентификация Google
+google-auth-oauthlib>=1.2.0       # OAuth2 потоки для Google
+
+# --- Background Tasks & Scheduling (Scraping Workers) ---
+celery>=5.3.6               # Очередь задач (для регулярного парсинга и рассылок)
+redis>=5.0.1                # Брокер сообщений для Celery и кэширование
+
+# --- Utilities & Data Processing ---
+httpx>=0.26.0               # Асинхронный HTTP клиент (для внешних API GPS)
+pandas>=2.2.0               # Обработка данных для отчетов и Excel экспорта
+openpyxl>=3.1.2             # Движок для записи/чтения Excel файлов (отчеты)
+email-validator>=2.1.0      # Валидация email адресов (Pydantic)
+
+# --- Testing ---
+pytest>=8.0.0               # Тестирование
+pytest-asyncio>=0.23.4      # Асинхронные тесты
