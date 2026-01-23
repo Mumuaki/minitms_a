@@ -1,0 +1,73 @@
+docs/
+├── backend/
+│   ├── src/
+│   │   ├── domain/
+│   │   │   ├── entities/
+│   │   │   │   └── spec_entities.md            <-- Сущности (User, Vehicle...)
+│   │   │   ├── value_objects/
+│   │   │   │   └── spec_value_objects.md
+│   │   │   ├── repositories/
+│   │   │   │   └── spec_repositories.md
+│   │   │   ├── services/
+│   │   │   │   └── spec_services.md            <-- Доменные сервисы (расчеты)
+│   │   │   └── events/
+│   │   │       └── spec_events.md
+│   │   ├── application/
+│   │   │   ├── use_cases/
+│   │   │   │   ├── auth/
+│   │   │   │   │   └── spec_auth.md
+│   │   │   │   ├── fleet/
+│   │   │   │   │   └── spec_fleet.md
+│   │   │   │   ├── cargo/
+│   │   │   │   │   └── spec_cargo.md
+│   │   │   │   ├── orders/
+│   │   │   │   │   └── spec_orders.md
+│   │   │   │   ├── planning/
+│   │   │   │   │   └── spec_planning.md
+│   │   │   │   └── notifications/
+│   │   │   │       └── spec_notifications.md
+│   │   │   ├── dto/
+│   │   │   │   └── spec_dto.md
+│   │   │   └── ports/
+│   │   │       └── spec_ports.md
+│   │   ├── infrastructure/
+│   │   │   ├── persistence/
+│   │   │   │   └── spec_persistence.md
+│   │   │   ├── external_services/
+│   │   │   │   ├── trans_eu/
+│   │   │   │   │   └── spec_trans_eu.md        <-- Парсинг Trans.eu
+│   │   │   │   ├── google_maps/
+│   │   │   │   │   └── spec_google_maps.md
+│   │   │   │   ├── google_sheets/
+│   │   │   │   │   └── spec_google_sheets.md   <-- Интеграция с таблицами
+│   │   │   │   ├── gps/
+│   │   │   │   │   └── spec_gps.md             <-- Интеграция с GPS
+│   │   │   │   ├── telegram/
+│   │   │   │   │   └── spec_telegram.md
+│   │   │   │   └── smtp/
+│   │   │   │       └── spec_smtp.md
+│   │   │   └── api/
+│   │   │       └── spec_api.md
+│   │   └── security/
+│   │       └── spec_security.md
+│   └── messaging/
+│       └── spec_messaging.md
+├── frontend/
+│   ├── src/
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   │   └── spec_auth.md
+│   │   │   ├── dashboard/
+│   │   │   │   └── spec_dashboard.md
+│   │   │   ├── loads/
+│   │   │   │   └── spec_loads.md               <-- UI поиска грузов
+│   │   │   ├── fleet/
+│   │   │   │   └── spec_fleet.md
+│   │   │   ├── finance/
+│   │   │   │   └── spec_finance.md
+│   │   │   └── reports/
+│   │   │       └── spec_reports.md
+│   │   └── shared/
+│   │       └── spec_shared.md
+└── infrastructure/
+    └── spec_infrastructure.md                  <-- DevOps (Docker/CI)
