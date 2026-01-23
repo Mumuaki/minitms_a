@@ -73,7 +73,7 @@
     * `body_type`: String
     * `price`: Decimal (€)
     * `distance_trans_eu`: Integer (км)
-    * `distance_google`: Integer (км) (Рассчитанное через Google Maps API)
+    * `distance_osm`: Integer (км) (Рассчитанное через OpenStreetMap OSRM)
     * `profitability`: Object (Value Object)
     * `rate_per_km`: Decimal (€/км) 
     * `total_cost`: Decimal (Себестоимость)

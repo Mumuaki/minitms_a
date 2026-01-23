@@ -12,9 +12,9 @@
 * `findMatching(filter: CargoFilterSpecification, currentVehiclePos: GeoLocation): Promise<Cargo[]>`
     * **Описание:** Основной метод поиска.
     * **Аргументы:**
-        * [cite_start]`filter`: Включает радиус поиска (по умолчанию +75км [cite: 38]), даты, тип кузова, вес.
+        * `filter`: Включает радиус поиска (по умолчанию +75км), даты, тип кузова, вес.
         * `currentVehiclePos`: Координаты для сортировки по удаленности.
-    * [cite_start]**Поведение:** Возвращает грузы, соответствующие фильтрам, с учетом исключенных (Blacklisted)[cite: 51].
+    * **Поведение:** Возвращает грузы, соответствующие фильтрам, с учетом исключенных (Blacklisted).
 * `findProfitable(minRate: Money): Promise<Cargo[]>`
     * Возвращает грузы с рентабельностью выше указанной.
 
@@ -25,7 +25,7 @@
 * `save(vehicle: Vehicle): Promise<void>`
 * `findAll(): Promise<Vehicle[]>`
 * `updateLocation(vehicleId: VehicleId, location: GeoLocation, address: string): Promise<void>`
-    * [cite_start]**Описание:** Обновляет текущие координаты и сохраняет запись в историю перемещений (`VehiclePosition` entity)[cite: 15].
+    * **Описание:** Обновляет текущие координаты и сохраняет запись в историю перемещений (`VehiclePosition` entity).
 * `findByGpsTrackerId(trackerId: string): Promise<Vehicle | null>`
 
 ## 3. Order Repository (`IOrderRepository`)
@@ -37,7 +37,7 @@
 * `findByDateRange(startDate: Date, endDate: Date): Promise<Order[]>`
     * Используется для генерации отчетов.
 * `getFinancialStats(vehicleId: VehicleId, month: int, year: int): Promise<FinancialStatsDTO>`
-    * [cite_start]Агрегирует данные для расчета план/факт (выручка, маржа)[cite: 5].
+    * Агрегирует данные для расчета план/факт (выручка, маржа).
 
 ## 4. Email Log Repository (`IEmailLogRepository`)
 Служебный репозиторий для контроля лимитов отправки.
@@ -45,7 +45,7 @@
 ### Методы
 * `logSentEmail(emailMeta: EmailMetadata): Promise<void>`
 * `countSentLastHour(userId: UserId): Promise<int>`
-    * [cite_start]**Описание:** Критически важный метод для реализации BR-015 (Лимит 50 писем/час)[cite: 5].
+    * **Описание:** Критически важный метод для реализации BR-015 (Лимит 50 писем/час).
     * **Query:** `SELECT COUNT(*) FROM email_logs WHERE user_id = :id AND sent_at > NOW() - INTERVAL '1 hour'`.
 
 ## 5. User Settings Repository (`ISettingsRepository`)
@@ -53,7 +53,7 @@
 
 ### Методы
 * `getBlacklistedCargoIds(userId: UserId): Promise<string[]>`
-    * [cite_start]Возвращает список ID грузов, помеченных на удаление[cite: 56].
+    * Возвращает список ID грузов, помеченных на удаление.
 * `saveBlacklistedCargo(userId: UserId, cargoExternalId: string): Promise<void>`
 * `getUserPreferences(userId: UserId): Promise<UserPreferences>`
     * Возвращает настройки: мин. ставка, шаблон email, API ключи.
