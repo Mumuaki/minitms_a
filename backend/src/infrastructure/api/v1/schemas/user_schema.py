@@ -15,7 +15,7 @@ class UserCreate(BaseModel):
     email: EmailStr = Field(..., description="Уникальный Email")
     username: str = Field(..., min_length=2, max_length=100, description="Имя пользователя")
     password: str = Field(..., min_length=6, description="Пароль")
-    role: str = Field(default="observer", description="Роль (administrator, director, dispatcher, observer)")
+    role: str = Field(default="guest", description="Роль (administrator, director, dispatcher, guest)")
     language: str = Field(default="ru", min_length=2, max_length=2, description="Язык (ru, en, sk, pl)")
 
 class UserUpdate(BaseModel):

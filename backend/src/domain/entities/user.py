@@ -27,12 +27,12 @@ class UserRole(enum.Enum):
     - Administrator: Полный доступ (управление пользователями, настройки)
     - Director: Управленческий доступ (финансы, планы, настройки интеграций)
     - Dispatcher: Операционный доступ (грузы, флот, email, Google Sheets)
-    - Observer: Только чтение (отчёты, статусы)
+    - Guest: Только чтение (отчёты, статусы)
     """
     ADMINISTRATOR = "administrator"
     DIRECTOR = "director"
     DISPATCHER = "dispatcher"
-    OBSERVER = "observer"
+    GUEST = "guest"
 
 
 class User(Base):
@@ -73,7 +73,7 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(
         SQLEnum(UserRole, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
-        default=UserRole.OBSERVER
+        default=UserRole.GUEST
     )
     
     # Localization (FR-LOC-001: RU, EN, SK, PL)

@@ -1,21 +1,67 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { LoginPage } from './features/auth/pages/LoginPage';
+import { MainLayout } from './components/layout/MainLayout';
+import { UsersPage } from './features/users/pages/UsersPage';
+import './index.css';
+import { useEffect, useState } from 'react';
+
+import { ThemeProvider } from './contexts/ThemeContext';
+
+// Защищенный маршрут: рендерит children внутри MainLayout только если авторизован
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const isAuthenticated = !!localStorage.getItem('access_token');
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return (
+    <MainLayout>
+      {children}
+    </MainLayout>
+  );
+};
+
+// Заглушки для страниц
+const DashboardPage = () => <h1>Дашборд</h1>; // Dashboard все еще заглушка
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('access_token'));
+
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsAuthenticated(!!localStorage.getItem('access_token'));
+    };
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
+  }, []);
+
   return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="container" style={{ textAlign: 'center' }}>
-        <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-          Mini<span style={{ color: 'var(--color-primary)' }}>TMS</span>
-        </h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>
-          Система управления перевозками
-        </p>
-        <div style={{ marginTop: '2rem' }}>
-          <button className="btn btn-primary">Войти в систему</button>
-        </div>
-      </div>
-    </div>
-  )
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={
+            isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
+          } />
+          
+          <Route path="/" element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/users" element={
+            <ProtectedRoute>
+              <UsersPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Catch all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;
