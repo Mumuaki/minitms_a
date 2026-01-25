@@ -49,3 +49,8 @@ logs/
 # SQLite
 *.sqlite3
 *.db
+
+# Scraper Temp Files
+*.json
+*.png
+*.html
