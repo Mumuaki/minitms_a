@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from backend.src.infrastructure.api.v1.endpoints import auth, users
+from backend.src.infrastructure.api.v1.endpoints import auth, users, cargos, route_planning
 
 # Инициализация приложения
 app = FastAPI(
@@ -44,6 +44,8 @@ api_v1_prefix = "/api/v1"
 
 app.include_router(auth.router, prefix=api_v1_prefix)
 app.include_router(users.router, prefix=api_v1_prefix)
+app.include_router(cargos.router, prefix=api_v1_prefix)
+app.include_router(route_planning.router, prefix=api_v1_prefix)
 
 
 @app.get("/health", tags=["System"])

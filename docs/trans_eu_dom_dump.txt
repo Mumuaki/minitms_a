@@ -1,0 +1,1542 @@
+=== TRANS.EU FIELD STRUCTURE DUMP ===
+
+Container data-ctx: main
+Label/Text: DE 10115 Берлин
+  -> Input: name=None, data-ctx=None, value='DE, 10115, Берлин'
+  -> Input: name=range, data-ctx=numberInput, value='136'
+  -> Input: name=exclude_loading_place_countries, data-ctx=None, value='Польша'
+  -> Input: name=None, data-ctx=None, value='CH, 9615, Dietfurt'
+  -> Input: name=range, data-ctx=numberInput, value='150'
+  -> Input: name=exclude_unloading_place_countries, data-ctx=None, value='Франция, Великобритания, Греция, Польша, Румыния'
+  -> Input: name=required_truck_body, data-ctx=None, value=''
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value='20'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=tabTemplates, data-ctx=None, value=''
+  -> Input: name=is_humanitarian_aid, data-ctx=None, value='on'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='28.01.2026'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='31.01.2026'
+  -> Input: name=exclude_cabotage, data-ctx=None, value='on'
+  -> Input: name=include_suspended, data-ctx=None, value='false'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=load_width, data-ctx=None, value=''
+  -> Input: name=load_height, data-ctx=None, value=''
+  -> Input: name=load_volume, data-ctx=None, value=''
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_offers_sources, data-ctx=None, value=''
+  -> Input: name=adr, data-ctx=None, value='all'
+  -> Input: name=adr, data-ctx=None, value='yes'
+  -> Input: name=adr, data-ctx=None, value='no'
+  -> Input: name=exemption_from_adr, data-ctx=None, value='on'
+  -> Input: name=lift, data-ctx=None, value='all'
+  -> Input: name=lift, data-ctx=None, value='yes'
+  -> Input: name=lift, data-ctx=None, value='no'
+  -> Input: name=truck_crane, data-ctx=None, value='all'
+  -> Input: name=truck_crane, data-ctx=None, value='yes'
+  -> Input: name=truck_crane, data-ctx=None, value='no'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=load_type, data-ctx=None, value=''
+  -> Input: name=cleaning_regime, data-ctx=None, value=''
+  -> Input: name=idtf, data-ctx=None, value=''
+  -> Input: name=keyword, data-ctx=None, value=''
+  -> Input: name=minimal_rating, data-ctx=None, value='0'
+  -> Input: name=minimal_rating, data-ctx=None, value='4'
+  -> Input: name=minimal_rating, data-ctx=None, value='3'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='0'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='800'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='600'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='400'
+  -> Input: name=is_bonabanco_pay, data-ctx=None, value='on'
+  -> Input: name=is_safepay, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=price_currency, data-ctx=None, value=''
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=payment_term, data-ctx=None, value=''
+  -> Input: name=name, data-ctx=None, value=''
+  -> Input: name=None, data-ctx=None, value='on'
+  -> Input: name=None, data-ctx=None, value=''
+  -> Input: name=None, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: main-region-1
+Label/Text: DE 10115 Берлин
+  -> Input: name=None, data-ctx=None, value='DE, 10115, Берлин'
+  -> Input: name=range, data-ctx=numberInput, value='136'
+  -> Input: name=exclude_loading_place_countries, data-ctx=None, value='Польша'
+  -> Input: name=None, data-ctx=None, value='CH, 9615, Dietfurt'
+  -> Input: name=range, data-ctx=numberInput, value='150'
+  -> Input: name=exclude_unloading_place_countries, data-ctx=None, value='Франция, Великобритания, Греция, Польша, Румыния'
+  -> Input: name=required_truck_body, data-ctx=None, value=''
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value='20'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=tabTemplates, data-ctx=None, value=''
+  -> Input: name=is_humanitarian_aid, data-ctx=None, value='on'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='28.01.2026'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='31.01.2026'
+  -> Input: name=exclude_cabotage, data-ctx=None, value='on'
+  -> Input: name=include_suspended, data-ctx=None, value='false'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=load_width, data-ctx=None, value=''
+  -> Input: name=load_height, data-ctx=None, value=''
+  -> Input: name=load_volume, data-ctx=None, value=''
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_offers_sources, data-ctx=None, value=''
+  -> Input: name=adr, data-ctx=None, value='all'
+  -> Input: name=adr, data-ctx=None, value='yes'
+  -> Input: name=adr, data-ctx=None, value='no'
+  -> Input: name=exemption_from_adr, data-ctx=None, value='on'
+  -> Input: name=lift, data-ctx=None, value='all'
+  -> Input: name=lift, data-ctx=None, value='yes'
+  -> Input: name=lift, data-ctx=None, value='no'
+  -> Input: name=truck_crane, data-ctx=None, value='all'
+  -> Input: name=truck_crane, data-ctx=None, value='yes'
+  -> Input: name=truck_crane, data-ctx=None, value='no'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=load_type, data-ctx=None, value=''
+  -> Input: name=cleaning_regime, data-ctx=None, value=''
+  -> Input: name=idtf, data-ctx=None, value=''
+  -> Input: name=keyword, data-ctx=None, value=''
+  -> Input: name=minimal_rating, data-ctx=None, value='0'
+  -> Input: name=minimal_rating, data-ctx=None, value='4'
+  -> Input: name=minimal_rating, data-ctx=None, value='3'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='0'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='800'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='600'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='400'
+  -> Input: name=is_bonabanco_pay, data-ctx=None, value='on'
+  -> Input: name=is_safepay, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=price_currency, data-ctx=None, value=''
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=payment_term, data-ctx=None, value=''
+  -> Input: name=name, data-ctx=None, value=''
+  -> Input: name=None, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: loadsExchange
+Label/Text: DE 10115 Берлин
+  -> Input: name=None, data-ctx=None, value='DE, 10115, Берлин'
+  -> Input: name=range, data-ctx=numberInput, value='136'
+  -> Input: name=exclude_loading_place_countries, data-ctx=None, value='Польша'
+  -> Input: name=None, data-ctx=None, value='CH, 9615, Dietfurt'
+  -> Input: name=range, data-ctx=numberInput, value='150'
+  -> Input: name=exclude_unloading_place_countries, data-ctx=None, value='Франция, Великобритания, Греция, Польша, Румыния'
+  -> Input: name=required_truck_body, data-ctx=None, value=''
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value='20'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=tabTemplates, data-ctx=None, value=''
+  -> Input: name=is_humanitarian_aid, data-ctx=None, value='on'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='28.01.2026'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='31.01.2026'
+  -> Input: name=exclude_cabotage, data-ctx=None, value='on'
+  -> Input: name=include_suspended, data-ctx=None, value='false'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=load_width, data-ctx=None, value=''
+  -> Input: name=load_height, data-ctx=None, value=''
+  -> Input: name=load_volume, data-ctx=None, value=''
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_offers_sources, data-ctx=None, value=''
+  -> Input: name=adr, data-ctx=None, value='all'
+  -> Input: name=adr, data-ctx=None, value='yes'
+  -> Input: name=adr, data-ctx=None, value='no'
+  -> Input: name=exemption_from_adr, data-ctx=None, value='on'
+  -> Input: name=lift, data-ctx=None, value='all'
+  -> Input: name=lift, data-ctx=None, value='yes'
+  -> Input: name=lift, data-ctx=None, value='no'
+  -> Input: name=truck_crane, data-ctx=None, value='all'
+  -> Input: name=truck_crane, data-ctx=None, value='yes'
+  -> Input: name=truck_crane, data-ctx=None, value='no'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=load_type, data-ctx=None, value=''
+  -> Input: name=cleaning_regime, data-ctx=None, value=''
+  -> Input: name=idtf, data-ctx=None, value=''
+  -> Input: name=keyword, data-ctx=None, value=''
+  -> Input: name=minimal_rating, data-ctx=None, value='0'
+  -> Input: name=minimal_rating, data-ctx=None, value='4'
+  -> Input: name=minimal_rating, data-ctx=None, value='3'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='0'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='800'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='600'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='400'
+  -> Input: name=is_bonabanco_pay, data-ctx=None, value='on'
+  -> Input: name=is_safepay, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=price_currency, data-ctx=None, value=''
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=payment_term, data-ctx=None, value=''
+  -> Input: name=name, data-ctx=None, value=''
+  -> Input: name=None, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: filters
+Label/Text: Загрузка
+  -> Input: name=None, data-ctx=None, value='DE, 10115, Берлин'
+  -> Input: name=range, data-ctx=numberInput, value='136'
+  -> Input: name=exclude_loading_place_countries, data-ctx=None, value='Польша'
+  -> Input: name=None, data-ctx=None, value='CH, 9615, Dietfurt'
+  -> Input: name=range, data-ctx=numberInput, value='150'
+  -> Input: name=exclude_unloading_place_countries, data-ctx=None, value='Франция, Великобритания, Греция, Польша, Румыния'
+  -> Input: name=required_truck_body, data-ctx=None, value=''
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value='20'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=tabTemplates, data-ctx=None, value=''
+  -> Input: name=is_humanitarian_aid, data-ctx=None, value='on'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='28.01.2026'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='31.01.2026'
+  -> Input: name=exclude_cabotage, data-ctx=None, value='on'
+  -> Input: name=include_suspended, data-ctx=None, value='false'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=load_width, data-ctx=None, value=''
+  -> Input: name=load_height, data-ctx=None, value=''
+  -> Input: name=load_volume, data-ctx=None, value=''
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_offers_sources, data-ctx=None, value=''
+  -> Input: name=adr, data-ctx=None, value='all'
+  -> Input: name=adr, data-ctx=None, value='yes'
+  -> Input: name=adr, data-ctx=None, value='no'
+  -> Input: name=exemption_from_adr, data-ctx=None, value='on'
+  -> Input: name=lift, data-ctx=None, value='all'
+  -> Input: name=lift, data-ctx=None, value='yes'
+  -> Input: name=lift, data-ctx=None, value='no'
+  -> Input: name=truck_crane, data-ctx=None, value='all'
+  -> Input: name=truck_crane, data-ctx=None, value='yes'
+  -> Input: name=truck_crane, data-ctx=None, value='no'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=load_type, data-ctx=None, value=''
+  -> Input: name=cleaning_regime, data-ctx=None, value=''
+  -> Input: name=idtf, data-ctx=None, value=''
+  -> Input: name=keyword, data-ctx=None, value=''
+  -> Input: name=minimal_rating, data-ctx=None, value='0'
+  -> Input: name=minimal_rating, data-ctx=None, value='4'
+  -> Input: name=minimal_rating, data-ctx=None, value='3'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='0'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='800'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='600'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='400'
+  -> Input: name=is_bonabanco_pay, data-ctx=None, value='on'
+  -> Input: name=is_safepay, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=price_currency, data-ctx=None, value=''
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=payment_term, data-ctx=None, value=''
+  -> Input: name=name, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: basic-filters
+Label/Text: Загрузка
+  -> Input: name=None, data-ctx=None, value='DE, 10115, Берлин'
+  -> Input: name=range, data-ctx=numberInput, value='136'
+  -> Input: name=exclude_loading_place_countries, data-ctx=None, value='Польша'
+  -> Input: name=None, data-ctx=None, value='CH, 9615, Dietfurt'
+  -> Input: name=range, data-ctx=numberInput, value='150'
+  -> Input: name=exclude_unloading_place_countries, data-ctx=None, value='Франция, Великобритания, Греция, Польша, Румыния'
+  -> Input: name=required_truck_body, data-ctx=None, value=''
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value='20'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=tabTemplates, data-ctx=None, value=''
+  -> Input: name=is_humanitarian_aid, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: place-field
+Label/Text: Загрузка
+  -> Input: name=None, data-ctx=None, value='DE, 10115, Берлин'
+  -> Input: name=range, data-ctx=numberInput, value='136'
+  -> Input: name=exclude_loading_place_countries, data-ctx=None, value='Польша'
+----------------------------------------
+Container data-ctx: place-loading_place-0
+Label/Text: +
+  -> Input: name=None, data-ctx=None, value='DE, 10115, Берлин'
+  -> Input: name=range, data-ctx=numberInput, value='136'
+----------------------------------------
+Container data-ctx: tooltip
+Label/Text: 
+  -> Input: name=None, data-ctx=None, value='DE, 10115, Берлин'
+----------------------------------------
+Container data-ctx: rangeOptions
+Label/Text: +
+  -> Input: name=range, data-ctx=numberInput, value='136'
+----------------------------------------
+Container data-ctx: rangeOptionsInput
+Label/Text: +
+  -> Input: name=range, data-ctx=numberInput, value='136'
+----------------------------------------
+Container data-ctx: exclude-field
+Label/Text: Исключить местонахождение
+  -> Input: name=exclude_loading_place_countries, data-ctx=None, value='Польша'
+----------------------------------------
+Container data-ctx: select
+Label/Text: Исключить местонахождение
+  -> Input: name=exclude_loading_place_countries, data-ctx=None, value='Польша'
+----------------------------------------
+Container data-ctx: swap-places-button
+Label/Text: 
+----------------------------------------
+Container data-ctx: place-field
+Label/Text: Разгрузка
+  -> Input: name=None, data-ctx=None, value='CH, 9615, Dietfurt'
+  -> Input: name=range, data-ctx=numberInput, value='150'
+  -> Input: name=exclude_unloading_place_countries, data-ctx=None, value='Франция, Великобритания, Греция, Польша, Румыния'
+----------------------------------------
+Container data-ctx: place-unloading_place-0
+Label/Text: +
+  -> Input: name=None, data-ctx=None, value='CH, 9615, Dietfurt'
+  -> Input: name=range, data-ctx=numberInput, value='150'
+----------------------------------------
+Container data-ctx: tooltip
+Label/Text: 
+  -> Input: name=None, data-ctx=None, value='CH, 9615, Dietfurt'
+----------------------------------------
+Container data-ctx: rangeOptions
+Label/Text: +
+  -> Input: name=range, data-ctx=numberInput, value='150'
+----------------------------------------
+Container data-ctx: rangeOptionsInput
+Label/Text: +
+  -> Input: name=range, data-ctx=numberInput, value='150'
+----------------------------------------
+Container data-ctx: exclude-field
+Label/Text: Исключить местонахождение
+  -> Input: name=exclude_unloading_place_countries, data-ctx=None, value='Франция, Великобритания, Греция, Польша, Румыния'
+----------------------------------------
+Container data-ctx: select
+Label/Text: Исключить местонахождение
+  -> Input: name=exclude_unloading_place_countries, data-ctx=None, value='Франция, Великобритания, Греция, Польша, Румыния'
+----------------------------------------
+Container data-ctx: required-truck-bodies
+Label/Text: Тип кузова
+  -> Input: name=required_truck_body, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: vehicle-type-select
+Label/Text: Тип кузова
+  -> Input: name=required_truck_body, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: checkbox-group
+Label/Text: с полуприцепом
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+  -> Input: name=vehicle_size, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: load-weight
+Label/Text: Вес (т)
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value='20'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: rangeWeight
+Label/Text: -
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value='20'
+----------------------------------------
+Container data-ctx: load_weight.valueFrom
+Label/Text: 
+  -> Input: name=valueFrom, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: load_weight.valueTo
+Label/Text: 
+  -> Input: name=valueTo, data-ctx=None, value='20'
+----------------------------------------
+Container data-ctx: rangeTransportPerOrder
+Label/Text: -
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: transport_per_order.valueFrom
+Label/Text: 
+  -> Input: name=valueFrom, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: transport_per_order.valueTo
+Label/Text: 
+  -> Input: name=valueTo, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: freightTypeCheckboxGroup
+Label/Text: мультифрахт
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+  -> Input: name=freight_types, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: filters-buttons
+Label/Text: Сохраненные фильтры
+  -> Input: name=tabTemplates, data-ctx=None, value=''
+  -> Input: name=is_humanitarian_aid, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: select
+Label/Text: Сохраненные фильтры
+  -> Input: name=tabTemplates, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: advanced-filters
+Label/Text: Дата загрузки
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='28.01.2026'
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+  -> Input: name=to, data-ctx=None, value='31.01.2026'
+  -> Input: name=exclude_cabotage, data-ctx=None, value='on'
+  -> Input: name=include_suspended, data-ctx=None, value='false'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=load_width, data-ctx=None, value=''
+  -> Input: name=load_height, data-ctx=None, value=''
+  -> Input: name=load_volume, data-ctx=None, value=''
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=freight_offers_sources, data-ctx=None, value=''
+  -> Input: name=adr, data-ctx=None, value='all'
+  -> Input: name=adr, data-ctx=None, value='yes'
+  -> Input: name=adr, data-ctx=None, value='no'
+  -> Input: name=exemption_from_adr, data-ctx=None, value='on'
+  -> Input: name=lift, data-ctx=None, value='all'
+  -> Input: name=lift, data-ctx=None, value='yes'
+  -> Input: name=lift, data-ctx=None, value='no'
+  -> Input: name=truck_crane, data-ctx=None, value='all'
+  -> Input: name=truck_crane, data-ctx=None, value='yes'
+  -> Input: name=truck_crane, data-ctx=None, value='no'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=load_type, data-ctx=None, value=''
+  -> Input: name=cleaning_regime, data-ctx=None, value=''
+  -> Input: name=idtf, data-ctx=None, value=''
+  -> Input: name=keyword, data-ctx=None, value=''
+  -> Input: name=minimal_rating, data-ctx=None, value='0'
+  -> Input: name=minimal_rating, data-ctx=None, value='4'
+  -> Input: name=minimal_rating, data-ctx=None, value='3'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='0'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='800'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='600'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='400'
+  -> Input: name=is_bonabanco_pay, data-ctx=None, value='on'
+  -> Input: name=is_safepay, data-ctx=None, value='on'
+  -> Input: name=valueFrom, data-ctx=None, value=''
+  -> Input: name=valueTo, data-ctx=None, value=''
+  -> Input: name=price_currency, data-ctx=None, value=''
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=payment_term, data-ctx=None, value=''
+  -> Input: name=name, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: dateinput-field
+Label/Text: 
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+----------------------------------------
+Container data-ctx: dateinput-field
+Label/Text: 
+  -> Input: name=to, data-ctx=None, value='28.01.2026'
+----------------------------------------
+Container data-ctx: dateinput-field
+Label/Text: 
+  -> Input: name=from, data-ctx=None, value='26.01.2026'
+----------------------------------------
+Container data-ctx: dateinput-field
+Label/Text: 
+  -> Input: name=to, data-ctx=None, value='31.01.2026'
+----------------------------------------
+Container data-ctx: cabotage
+Label/Text: Исключить каботаж
+  -> Input: name=exclude_cabotage, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: route_distance.from
+Label/Text: 
+  -> Input: name=valueFrom, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: route_distance.to
+Label/Text: 
+  -> Input: name=valueTo, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: length.from
+Label/Text: 
+  -> Input: name=valueFrom, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: length.to
+Label/Text: 
+  -> Input: name=valueTo, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: width
+Label/Text: Ширина (m)
+  -> Input: name=load_width, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: height
+Label/Text: Высота (m)
+  -> Input: name=load_height, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: volume
+Label/Text: Объем (m³)
+  -> Input: name=load_volume, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: checkbox-group
+Label/Text: Способ загрузки
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+  -> Input: name=required_ways_of_loading, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: temperature.from
+Label/Text: 
+  -> Input: name=valueFrom, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: temperature.to
+Label/Text: 
+  -> Input: name=valueTo, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: select
+Label/Text: Источники предложений грузов
+  -> Input: name=freight_offers_sources, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: additionalRequirementsTooltip
+Label/Text: ADRПоказать всеПоказывать только с ADRПоказать без ADRВыключения ADRГидробортПоказать всеПоказать только с ГидробортомПоказать без ГидробортаАвтопогрузчикПоказать всеПоказывать только с Автокраном HDSПоказать без Автокрана HDSОборудование самосвалаОдинарный зерновой люкДвойной зерновой люкРукавТип двериЗадняя дверьДверь
+  -> Input: name=adr, data-ctx=None, value='all'
+  -> Input: name=adr, data-ctx=None, value='yes'
+  -> Input: name=adr, data-ctx=None, value='no'
+  -> Input: name=exemption_from_adr, data-ctx=None, value='on'
+  -> Input: name=lift, data-ctx=None, value='all'
+  -> Input: name=lift, data-ctx=None, value='yes'
+  -> Input: name=lift, data-ctx=None, value='no'
+  -> Input: name=truck_crane, data-ctx=None, value='all'
+  -> Input: name=truck_crane, data-ctx=None, value='yes'
+  -> Input: name=truck_crane, data-ctx=None, value='no'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: adr
+Label/Text: ADRПоказать всеПоказывать только с ADRПоказать без ADR
+  -> Input: name=adr, data-ctx=None, value='all'
+  -> Input: name=adr, data-ctx=None, value='yes'
+  -> Input: name=adr, data-ctx=None, value='no'
+----------------------------------------
+Container data-ctx: lift
+Label/Text: ГидробортПоказать всеПоказать только с ГидробортомПоказать без Гидроборта
+  -> Input: name=lift, data-ctx=None, value='all'
+  -> Input: name=lift, data-ctx=None, value='yes'
+  -> Input: name=lift, data-ctx=None, value='no'
+----------------------------------------
+Container data-ctx: truck_crane
+Label/Text: АвтопогрузчикПоказать всеПоказывать только с Автокраном HDSПоказать без Автокрана HDS
+  -> Input: name=truck_crane, data-ctx=None, value='all'
+  -> Input: name=truck_crane, data-ctx=None, value='yes'
+  -> Input: name=truck_crane, data-ctx=None, value='no'
+----------------------------------------
+Container data-ctx: required-tipper-trailer-additional-equipment
+Label/Text: Оборудование самосвалаОдинарный зерновой люкДвойной зерновой люкРукав
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+  -> Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: required-door-types
+Label/Text: Тип двериЗадняя дверьДверь
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+  -> Input: name=required_door_types, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: select
+Label/Text: 
+  -> Input: name=load_type, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: select
+Label/Text: Программа очистки
+  -> Input: name=cleaning_regime, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: idtf
+Label/Text: Код IDTF и категория товара
+  -> Input: name=idtf, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: keyword
+Label/Text: Поиск фразы
+  -> Input: name=keyword, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: ratingsAndCertificationsTooltip
+Label/Text: Оценка клиентаВсе оценкиОчень хорошо (более 4 звезд)ОК (выше 3 звезд)
+  -> Input: name=minimal_rating, data-ctx=None, value='0'
+  -> Input: name=minimal_rating, data-ctx=None, value='4'
+  -> Input: name=minimal_rating, data-ctx=None, value='3'
+----------------------------------------
+Container data-ctx: minimal_rating
+Label/Text: Оценка клиентаВсе оценкиОчень хорошо (более 4 звезд)ОК (выше 3 звезд)
+  -> Input: name=minimal_rating, data-ctx=None, value='0'
+  -> Input: name=minimal_rating, data-ctx=None, value='4'
+  -> Input: name=minimal_rating, data-ctx=None, value='3'
+----------------------------------------
+Container data-ctx: paymentReliabilityTooltip
+Label/Text: TransRiskПоказать всеСупер плательщикОчень хороший плательщикХороший плательщикФинансирование
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='0'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='800'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='600'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='400'
+  -> Input: name=is_bonabanco_pay, data-ctx=None, value='on'
+  -> Input: name=is_safepay, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: transRisk.select
+Label/Text: TransRiskПоказать всеСупер плательщикОчень хороший плательщикХороший плательщик
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='0'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='800'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='600'
+  -> Input: name=minimal_trans_risk, data-ctx=None, value='400'
+----------------------------------------
+Container data-ctx: advancedFilters.valueFrom
+Label/Text: 
+  -> Input: name=valueFrom, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: advancedFilters.valueTo
+Label/Text: 
+  -> Input: name=valueTo, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: select
+Label/Text: 
+  -> Input: name=price_currency, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: settlement_type
+Label/Text: цена за перевозку
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+  -> Input: name=settlement_type, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: select
+Label/Text: 
+  -> Input: name=payment_term, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: footer
+Label/Text: Очистить фильтры
+  -> Input: name=name, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: tab-template-name
+Label/Text: 
+  -> Input: name=name, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: LoadsList.container
+Label/Text: Все предложения:
+  -> Input: name=None, data-ctx=None, value='on'
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 39104 Magdeburg
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 39104 Magdeburg
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 39104 Magdeburg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 39104 Magdeburg
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 128
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 89073 Ulm
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 89073 Ulm
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 89073 Ulm
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 136
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 16278 Schwedt
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 16278 Schwedt
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 16278 Schwedt
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 16278 Schwedt
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 80
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 78733 Aichhalden
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 78733 Aichhalden
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 78733 Aichhalden
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 115
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 14656 Brieselang
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 14656 Brieselang
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 14656 Brieselang
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 14656 Brieselang
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 27
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 73277 Owen
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 73277 Owen
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 73277 Owen
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 141
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 14669 Ketzin/Havel
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 14669 Ketzin/Havel
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 14669 Ketzin/Havel
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 14669 Ketzin/Havel
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 37
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 89150 Laichingen
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 89150 Laichingen
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 89150 Laichingen
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 135
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 14532 Kleinmachnow
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 14532 Kleinmachnow
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 14532 Kleinmachnow
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 14532 Kleinmachnow
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 18
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 89183 Holzkirch
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 89183 Holzkirch
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 89183 Holzkirch
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 149
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 15754 Heidesee
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 15754 Heidesee
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 15754 Heidesee
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 15754 Heidesee
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 42
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 79111 Freiburg im Breisgau
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 79111 Freiburg im Breisgau
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 79111 Freiburg im Breisgau
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 122
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 15230 Frankfurt (Oder)
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 15230 Frankfurt (Oder)
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 15230 Frankfurt (Oder)
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 15230 Frankfurt (Oder)
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 82
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 79379 Müllheim im Markgräflerland
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 79379 Müllheim im Markgräflerland
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 79379 Müllheim im Markgräflerland
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 121
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 39326 Wolmirstedt
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 39326 Wolmirstedt
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 39326 Wolmirstedt
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 39326 Wolmirstedt
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 124
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 131
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 39245 Gommern
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 39245 Gommern
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 39245 Gommern
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 39245 Gommern
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 118
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 131
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 06385 Aken
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 06385 Aken
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 06385 Aken
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 06385 Aken
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 119
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 72070 Tybinga
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 131
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 16727 Velten
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 16727 Velten
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 16727 Velten
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 16727 Velten
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 23
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 88316 Isny im Allgäu
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 88316 Isny im Allgäu
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 88316 Isny im Allgäu
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 82
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 39261 Zerbst/Anhalt
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 39261 Zerbst/Anhalt
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 39261 Zerbst/Anhalt
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 39261 Zerbst/Anhalt
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 110
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 140
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 39326 Colbitz
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 39326 Colbitz
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 39326 Colbitz
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 39326 Colbitz
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 123
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 140
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 06366 Köthen
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 06366 Köthen
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 06366 Köthen
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 06366 Köthen
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 130
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 140
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 06842 Dessau
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 06842 Dessau
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 06842 Dessau
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 06842 Dessau
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 111
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 140
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 10587 Berlín
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 10587 Berlín
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 10587 Berlín
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 10587 Berlín
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 5
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 88069 Tettnang
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 88069 Tettnang
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 88069 Tettnang
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 53
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 12099 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 12099 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 12099 Berlin
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 12099 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 8
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 77972 Mahlberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 77972 Mahlberg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 77972 Mahlberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 142
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 12099 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 12099 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 12099 Berlin
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 12099 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 8
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 77972 Mahlberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 77972 Mahlberg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 77972 Mahlberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 142
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 15230 Frankfurt nad Odrą
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 15230 Frankfurt nad Odrą
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 15230 Frankfurt nad Odrą
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 15230 Frankfurt nad Odrą
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 82
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: CH 6034 Inwil
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: CH 6034 Inwil
+----------------------------------------
+Container data-ctx: place
+Label/Text: CH 6034 Inwil
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 61
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 03042 Cottbus
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 03042 Cottbus
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 03042 Cottbus
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 03042 Cottbus
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 109
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 88045 Friedrichshafen
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 88045 Friedrichshafen
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 88045 Friedrichshafen
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 46
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 39104 Magdeburg
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 39104 Magdeburg
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 39104 Magdeburg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 39104 Magdeburg
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 128
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 140
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 14793 Ziesar
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 14793 Ziesar
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 14793 Ziesar
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 14793 Ziesar
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 80
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 71083 Herrenberg
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 140
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 10825 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 10825 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 10825 Berlin
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 10825 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 7
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 89129 Langenau
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 89129 Langenau
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 89129 Langenau
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 150
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 39167 Niederndodeleben
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 39167 Niederndodeleben
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 39167 Niederndodeleben
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 39167 Niederndodeleben
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 136
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 72336 Balingen
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 72336 Balingen
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 72336 Balingen
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 105
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 04860 Werdau
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 04860 Werdau
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 04860 Werdau
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 04860 Werdau
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 112
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 77740 Bad Peterstal
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 77740 Bad Peterstal
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 77740 Bad Peterstal
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 138
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 15926 Luckau
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 15926 Luckau
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 15926 Luckau
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 15926 Luckau
+----------------------------------------
+Container data-ctx: loading-place-cell-distance
+Label/Text: 79
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: CH 8048 Zurych
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: CH 8048 Zurych
+----------------------------------------
+Container data-ctx: place
+Label/Text: CH 8048 Zurych
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 46
+----------------------------------------
+Container data-ctx: loading-place-cell-with-tags
+Label/Text: DE 10115 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell
+Label/Text: DE 10115 Berlin
+----------------------------------------
+Container data-ctx: loading-place-cell-date
+Label/Text: DE 10115 Berlin
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 10115 Berlin
+----------------------------------------
+Container data-ctx: unloading-place-cell
+Label/Text: DE 72459 Ebingen
+----------------------------------------
+Container data-ctx: unloading-place-cell-date
+Label/Text: DE 72459 Ebingen
+----------------------------------------
+Container data-ctx: place
+Label/Text: DE 72459 Ebingen
+----------------------------------------
+Container data-ctx: unloading-place-cell-distance
+Label/Text: 99
+----------------------------------------
+Container data-ctx: select-content
+Label/Text: Напишите как минимум 2 символа
+  -> Input: name=None, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: filter-input
+Label/Text: 
+  -> Input: name=None, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: tooltip
+Label/Text: 
+  -> Input: name=None, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: select-content
+Label/Text: Напишите как минимум 2 символа
+  -> Input: name=None, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: filter-input
+Label/Text: 
+  -> Input: name=None, data-ctx=None, value=''
+----------------------------------------
+Container data-ctx: tooltip
+Label/Text: 
+  -> Input: name=None, data-ctx=None, value=''
+----------------------------------------
+
+=== ALL INPUTS RAW DUMP ===
+Input: name=None, data-ctx=None, parent-ctx=tooltip, val='DE, 10115, Берлин'
+Input: name=range, data-ctx=numberInput, parent-ctx=None, val='136'
+Input: name=exclude_loading_place_countries, data-ctx=None, parent-ctx=select, val='Польша'
+Input: name=None, data-ctx=None, parent-ctx=tooltip, val='CH, 9615, Dietfurt'
+Input: name=range, data-ctx=numberInput, parent-ctx=None, val='150'
+Input: name=exclude_unloading_place_countries, data-ctx=None, parent-ctx=select, val='Франция, Великобритания, Греция, Польша, Румыния'
+Input: name=required_truck_body, data-ctx=None, parent-ctx=vehicle-type-select, val=''
+Input: name=vehicle_size, data-ctx=None, parent-ctx=vehicle_size.multicheckbox, val='on'
+Input: name=vehicle_size, data-ctx=None, parent-ctx=vehicle_size.multicheckbox, val='on'
+Input: name=vehicle_size, data-ctx=None, parent-ctx=vehicle_size.multicheckbox, val='on'
+Input: name=vehicle_size, data-ctx=None, parent-ctx=vehicle_size.multicheckbox, val='on'
+Input: name=valueFrom, data-ctx=None, parent-ctx=load_weight.valueFrom, val=''
+Input: name=valueTo, data-ctx=None, parent-ctx=load_weight.valueTo, val='20'
+Input: name=valueFrom, data-ctx=None, parent-ctx=transport_per_order.valueFrom, val=''
+Input: name=valueTo, data-ctx=None, parent-ctx=transport_per_order.valueTo, val=''
+Input: name=freight_types, data-ctx=None, parent-ctx=type.multi_ftl, val='on'
+Input: name=freight_types, data-ctx=None, parent-ctx=type.ftl, val='on'
+Input: name=freight_types, data-ctx=None, parent-ctx=type.ltl, val='on'
+Input: name=tabTemplates, data-ctx=None, parent-ctx=select, val=''
+Input: name=is_humanitarian_aid, data-ctx=None, parent-ctx=is_humanitarian_aid, val='on'
+Input: name=from, data-ctx=None, parent-ctx=dateinput-field, val='26.01.2026'
+Input: name=to, data-ctx=None, parent-ctx=dateinput-field, val='28.01.2026'
+Input: name=from, data-ctx=None, parent-ctx=dateinput-field, val='26.01.2026'
+Input: name=to, data-ctx=None, parent-ctx=dateinput-field, val='31.01.2026'
+Input: name=exclude_cabotage, data-ctx=None, parent-ctx=checkbox-cabotage, val='on'
+Input: name=include_suspended, data-ctx=None, parent-ctx=include_suspended, val='false'
+Input: name=valueFrom, data-ctx=None, parent-ctx=route_distance.from, val=''
+Input: name=valueTo, data-ctx=None, parent-ctx=route_distance.to, val=''
+Input: name=valueFrom, data-ctx=None, parent-ctx=length.from, val=''
+Input: name=valueTo, data-ctx=None, parent-ctx=length.to, val=''
+Input: name=load_width, data-ctx=None, parent-ctx=width, val=''
+Input: name=load_height, data-ctx=None, parent-ctx=height, val=''
+Input: name=load_volume, data-ctx=None, parent-ctx=volume, val=''
+Input: name=required_ways_of_loading, data-ctx=None, parent-ctx=required_ways_of_loading.multicheckbox, val='on'
+Input: name=required_ways_of_loading, data-ctx=None, parent-ctx=required_ways_of_loading.multicheckbox, val='on'
+Input: name=required_ways_of_loading, data-ctx=None, parent-ctx=required_ways_of_loading.multicheckbox, val='on'
+Input: name=valueFrom, data-ctx=None, parent-ctx=temperature.from, val=''
+Input: name=valueTo, data-ctx=None, parent-ctx=temperature.to, val=''
+Input: name=freight_offers_sources, data-ctx=None, parent-ctx=select, val=''
+Input: name=adr, data-ctx=None, parent-ctx=radio, val='all'
+Input: name=adr, data-ctx=None, parent-ctx=radio, val='yes'
+Input: name=adr, data-ctx=None, parent-ctx=radio, val='no'
+Input: name=exemption_from_adr, data-ctx=None, parent-ctx=exemption-from-adr-checkbox, val='on'
+Input: name=lift, data-ctx=None, parent-ctx=radio, val='all'
+Input: name=lift, data-ctx=None, parent-ctx=radio, val='yes'
+Input: name=lift, data-ctx=None, parent-ctx=radio, val='no'
+Input: name=truck_crane, data-ctx=None, parent-ctx=radio, val='all'
+Input: name=truck_crane, data-ctx=None, parent-ctx=radio, val='yes'
+Input: name=truck_crane, data-ctx=None, parent-ctx=radio, val='no'
+Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, parent-ctx=required-tipper-trailer-additional-equipment-1_single_grain_hatch, val='on'
+Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, parent-ctx=required-tipper-trailer-additional-equipment-2_double_grain_hatch, val='on'
+Input: name=required_tipper_trailer_additional_equipment, data-ctx=None, parent-ctx=required-tipper-trailer-additional-equipment-3_dust_sock, val='on'
+Input: name=required_door_types, data-ctx=None, parent-ctx=required-door-types-1_rear_door, val='on'
+Input: name=required_door_types, data-ctx=None, parent-ctx=required-door-types-2_swing_door, val='on'
+Input: name=load_type, data-ctx=None, parent-ctx=select, val=''
+Input: name=cleaning_regime, data-ctx=None, parent-ctx=select, val=''
+Input: name=idtf, data-ctx=None, parent-ctx=idtf, val=''
+Input: name=keyword, data-ctx=None, parent-ctx=keyword, val=''
+Input: name=minimal_rating, data-ctx=None, parent-ctx=radio, val='0'
+Input: name=minimal_rating, data-ctx=None, parent-ctx=radio, val='4'
+Input: name=minimal_rating, data-ctx=None, parent-ctx=radio, val='3'
+Input: name=minimal_trans_risk, data-ctx=None, parent-ctx=radio, val='0'
+Input: name=minimal_trans_risk, data-ctx=None, parent-ctx=radio, val='800'
+Input: name=minimal_trans_risk, data-ctx=None, parent-ctx=radio, val='600'
+Input: name=minimal_trans_risk, data-ctx=None, parent-ctx=radio, val='400'
+Input: name=is_bonabanco_pay, data-ctx=None, parent-ctx=is_bonabanco_pay, val='on'
+Input: name=is_safepay, data-ctx=None, parent-ctx=is_safepay, val='on'
+Input: name=valueFrom, data-ctx=None, parent-ctx=advancedFilters.valueFrom, val=''
+Input: name=valueTo, data-ctx=None, parent-ctx=advancedFilters.valueTo, val=''
+Input: name=price_currency, data-ctx=None, parent-ctx=select, val=''
+Input: name=settlement_type, data-ctx=None, parent-ctx=type.1_ftl, val='on'
+Input: name=settlement_type, data-ctx=None, parent-ctx=type.2_tone, val='on'
+Input: name=payment_term, data-ctx=None, parent-ctx=select, val=''
+Input: name=name, data-ctx=None, parent-ctx=tab-template-name, val=''
+Input: name=None, data-ctx=None, parent-ctx=group-offers-checkbox, val='on'
+Input: name=None, data-ctx=None, parent-ctx=tooltip, val=''
+Input: name=None, data-ctx=None, parent-ctx=tooltip, val=''

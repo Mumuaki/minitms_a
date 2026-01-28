@@ -20,6 +20,16 @@ from backend.src.infrastructure.security.rbac import has_permission, Permission
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
 from backend.src.domain.repositories.user_repository import UserRepository
 from backend.src.infrastructure.persistence.sqlalchemy.repositories.user_repository import SqlAlchemyUserRepository
+from backend.src.domain.repositories.cargo_repository import CargoRepository
+from backend.src.infrastructure.persistence.sqlalchemy.repositories.cargo_repository_impl import CargoRepositoryImpl
+from backend.src.domain.repositories.vehicle_repository import VehicleRepository
+from backend.src.infrastructure.persistence.sqlalchemy.repositories.vehicle_repository_impl import VehicleRepositoryImpl
+from backend.src.application.ports.maps_port import MapsPort
+from backend.src.infrastructure.external_services.google_maps.distance_calculator import GoogleMapsDistanceCalculator
+from backend.src.domain.services.route_optimizer import RouteOptimizer
+from backend.src.domain.services.profitability_calculator import ProfitabilityCalculator
+from backend.src.domain.services.route_planner import RoutePlanner
+from backend.src.application.use_cases.plan_routes import PlanRoutesUseCase
 
 
 # OAuth2 схема — указывает FastAPI где находится endpoint логина
@@ -121,3 +131,50 @@ def require_permission(permission: Permission) -> Callable:
 def get_user_repository(db: Session = Depends(get_db)) -> UserRepository:
     """Dependency для получения репозитория пользователей."""
     return SqlAlchemyUserRepository(db)
+
+
+def get_cargo_repository(db: Session = Depends(get_db)) -> CargoRepository:
+    """Dependency для получения репозитория грузов."""
+    return CargoRepositoryImpl(db)
+
+
+def get_vehicle_repository(db: Session = Depends(get_db)) -> VehicleRepository:
+    """Dependency для получения репозитория транспортных средств."""
+    return VehicleRepositoryImpl(db)
+
+
+def get_maps_service() -> MapsPort:
+    """Dependency для получения сервиса карт."""
+    return GoogleMapsDistanceCalculator()
+
+
+def get_route_optimizer(maps_service: MapsPort = Depends(get_maps_service)) -> RouteOptimizer:
+    """Dependency для получения оптимизатора маршрутов."""
+    return RouteOptimizer(maps_service)
+
+
+def get_profitability_calculator() -> ProfitabilityCalculator:
+    """Dependency для получения калькулятора рентабельности."""
+    return ProfitabilityCalculator()
+
+
+def get_route_planner(
+    route_optimizer: RouteOptimizer = Depends(get_route_optimizer),
+    profitability_calculator: ProfitabilityCalculator = Depends(get_profitability_calculator),
+    cargo_repo: CargoRepository = Depends(get_cargo_repository),
+    vehicle_repo: VehicleRepository = Depends(get_vehicle_repository)
+) -> RoutePlanner:
+    """Dependency для получения планировщика маршрутов."""
+    return RoutePlanner(
+        route_optimizer=route_optimizer,
+        profitability_calculator=profitability_calculator,
+        cargo_repository=cargo_repo,
+        vehicle_repository=vehicle_repo
+    )
+
+
+def get_plan_routes_use_case(
+    route_planner: RoutePlanner = Depends(get_route_planner)
+) -> PlanRoutesUseCase:
+    """Dependency для получения use case планирования маршрутов."""
+    return PlanRoutesUseCase(route_planner)
