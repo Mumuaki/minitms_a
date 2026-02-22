@@ -1,4 +1,4 @@
-﻿# MiniTMS Server Diagnostic Script
+# MiniTMS Server Diagnostic Script
 # This script checks all components of the deployed MiniTMS system
 
 $SERVER = "89.167.70.67"
@@ -62,7 +62,7 @@ ssh ${USER}@${SERVER} "systemctl status nginx --no-pager 2>/dev/null | head -20 
 
 # Check Application Logs
 Write-Host "`n[10/10] Checking Recent Application Logs..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "echo '--- Backend Logs (last 20 lines) ---'; tail -20 /var/log/minitms/backend.log 2>/dev/null || tail -20 /root/MiniTMS/backend/logs/*.log 2>/dev/null || journalctl -u minitms-backend -n 20 --no-pager || echo 'No backend logs found'"
+ssh ${USER}@${SERVER} "echo '--- Backend Logs (last 20 lines) ---'; tail -20 /var/log/minitms/backend.log 2>/dev/null || tail -20 /opt/minitms/backend/logs/*.log 2>/dev/null || journalctl -u minitms-backend -n 20 --no-pager || echo 'No backend logs found'"
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "Diagnostic Complete!" -ForegroundColor Cyan

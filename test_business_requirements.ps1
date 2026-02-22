@@ -1,4 +1,4 @@
-﻿# MiniTMS Business Requirements Testing
+# MiniTMS Business Requirements Testing
 # Tests according to MiniTMS_Full_Doc_Structure.md specifications
 
 $SERVER = "89.167.70.67"
@@ -15,7 +15,7 @@ Write-Host "`n[BR-001] Trans.eu Integration - КРИТИЧЕСКИЙ" -Foregroun
 Write-Host "Requirement: Система должна автоматически получать грузы с trans.eu" -ForegroundColor Gray
 ssh ${USER}@${SERVER} @"
 echo 'Testing Trans.eu credentials...'
-grep -E '(TRANS_EU_USERNAME|TRANS_EU_PASSWORD)' /root/MiniTMS/backend/.env | grep -v '#'
+grep -E '(TRANS_EU_USERNAME|TRANS_EU_PASSWORD)' /opt/minitms/backend/.env | grep -v '#'
 echo ''
 echo 'Testing scraping endpoint...'
 curl -s ${BACKEND_URL}/api/v1/scraping/status -w '\nHTTP: %{http_code}\n'
@@ -37,7 +37,7 @@ echo 'Testing GPS integration...'
 curl -s ${BACKEND_URL}/api/v1/gps/vehicles -w '\nHTTP: %{http_code}\n'
 echo ''
 echo 'Checking GPS Dozor credentials...'
-grep -E '(GPS_DOZOR_URL|GPS_DOZOR_USERNAME)' /root/MiniTMS/backend/.env | grep -v '#'
+grep -E '(GPS_DOZOR_URL|GPS_DOZOR_USERNAME)' /opt/minitms/backend/.env | grep -v '#'
 "@
 
 # BR-004: Многопользовательский режим

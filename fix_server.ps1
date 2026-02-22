@@ -1,4 +1,4 @@
-﻿# MiniTMS Server Fix & Maintenance Script
+# MiniTMS Server Fix & Maintenance Script
 # This script helps fix common issues with the deployed system
 
 $SERVER = "89.167.70.67"
@@ -73,12 +73,12 @@ function View-FrontendLogs {
 
 function Check-DatabaseMigrations {
     Write-Host "`nChecking Database Migrations..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "cd /root/MiniTMS/backend && python -m alembic current"
+    ssh ${USER}@${SERVER} "cd /opt/minitms/backend && python -m alembic current"
 }
 
 function Run-DatabaseMigrations {
     Write-Host "`nRunning Database Migrations..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "cd /root/MiniTMS/backend && python -m alembic upgrade head"
+    ssh ${USER}@${SERVER} "cd /opt/minitms/backend && python -m alembic upgrade head"
 }
 
 function Clear-RedisCache {
@@ -93,12 +93,12 @@ function Check-DiskSpace {
 
 function Update-BackendCode {
     Write-Host "`nUpdating Backend Code..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "cd /root/MiniTMS && git pull && echo 'Code updated'"
+    ssh ${USER}@${SERVER} "cd /opt/minitms && git pull && echo 'Code updated'"
 }
 
 function Install-Dependencies {
     Write-Host "`nInstalling/Updating Dependencies..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "cd /root/MiniTMS/backend && pip install -r requirements.txt"
+    ssh ${USER}@${SERVER} "cd /opt/minitms/backend && pip install -r requirements.txt"
 }
 
 function Check-ServiceStatus {

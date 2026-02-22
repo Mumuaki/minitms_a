@@ -1,4 +1,4 @@
-﻿# MiniTMS Server Management Guide
+# MiniTMS Server Management Guide
 
 ## Обзор
 
@@ -305,7 +305,7 @@ journalctl -xe
 Предполагаемая структура (может отличаться):
 
 ```
-/root/MiniTMS/
+/opt/minitms/
 ├── backend/
 │   ├── .env                    # Конфигурация
 │   ├── main.py                 # Точка входа
@@ -333,9 +333,9 @@ After=network.target postgresql.service redis.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/MiniTMS/backend
-Environment="PATH=/root/MiniTMS/backend/venv/bin"
-ExecStart=/root/MiniTMS/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+WorkingDirectory=/opt/minitms/backend
+Environment="PATH=/opt/minitms/backend/venv/bin"
+ExecStart=/opt/minitms/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
 Restart=always
 
 [Install]
@@ -352,7 +352,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/MiniTMS/frontend
+WorkingDirectory=/opt/minitms/frontend
 ExecStart=/usr/bin/npm start
 Restart=always
 
@@ -394,8 +394,8 @@ iftop
 
 **Решение:**
 1. Проверьте логи: `journalctl -u minitms-backend -n 50`
-2. Проверьте .env файл: `cat /root/MiniTMS/backend/.env`
-3. Проверьте зависимости: `cd /root/MiniTMS/backend && pip list`
+2. Проверьте .env файл: `cat /opt/minitms/backend/.env`
+3. Проверьте зависимости: `cd /opt/minitms/backend && pip list`
 4. Проверьте порт: `netstat -tlnp | grep 8000`
 
 ### Проблема: База данных недоступна

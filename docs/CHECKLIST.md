@@ -87,8 +87,8 @@ VITE_TRANS_EU_CLIENT_ID=your_client_id
 
 ### 3.1 Клонирование репозитория
 ```bash
-git clone https://github.com/Mumuaki/TMS_v1.git
-cd TMS_v1
+git clone https://github.com/Mumuaki/minitms_a.git
+cd minitms_a
 ```
 
 ### 3.2 Backend Setup

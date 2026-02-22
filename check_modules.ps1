@@ -1,4 +1,4 @@
-﻿# MiniTMS Detailed Module Testing Script
+# MiniTMS Detailed Module Testing Script
 # This script performs detailed checks on each module according to the specification
 
 $SERVER = "89.167.70.67"
@@ -160,7 +160,7 @@ Write-Host "CONFIGURATION: Environment Check" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 Write-Host "`nChecking .env file..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "cat /root/MiniTMS/backend/.env 2>/dev/null | grep -v PASSWORD | grep -v SECRET | grep -v KEY || echo '.env file not found in /root/MiniTMS/backend/'"
+ssh ${USER}@${SERVER} "cat /opt/minitms/backend/.env 2>/dev/null | grep -v PASSWORD | grep -v SECRET | grep -v KEY || echo '.env file not found in /opt/minitms/backend/'"
 
 # Check Logs for Errors
 Write-Host "`n========================================" -ForegroundColor Cyan

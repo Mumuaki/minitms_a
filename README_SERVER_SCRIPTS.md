@@ -1,4 +1,4 @@
-﻿# 🚀 MiniTMS Server Management Scripts
+# 🚀 MiniTMS Server Management Scripts
 
 Полный набор скриптов для управления, диагностики и тестирования развернутого приложения MiniTMS на удаленном сервере **89.167.70.67**.
 
@@ -436,7 +436,7 @@ journalctl --vacuum-time=7d  # Очистка старых логов
 # 15 - Test Trans.eu Connection
 # Проверьте credentials в .env:
 .\connect_server.ps1
-cat /root/MiniTMS/backend/.env | grep TRANS_EU
+cat /opt/minitms/backend/.env | grep TRANS_EU
 ```
 
 ### Проблема: "GPS интеграция не работает"
@@ -447,7 +447,7 @@ cat /root/MiniTMS/backend/.env | grep TRANS_EU
 # 16 - Test GPS Integration
 # Проверьте credentials:
 .\connect_server.ps1
-cat /root/MiniTMS/backend/.env | grep GPS_DOZOR
+cat /opt/minitms/backend/.env | grep GPS_DOZOR
 ```
 
 ---

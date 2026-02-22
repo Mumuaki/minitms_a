@@ -47,7 +47,43 @@ git commit -m "Описание изменений"
 git push
 ```
 
+## Синхронизация удалённого сервера (VPS) с GitHub
+
+После того как вы сделали `git push` с ПК в **minitms_a**, нужно подтянуть код на сервер и перезапустить сервисы.
+
+### Вариант 1: скрипт с ПК (по SSH)
+
+Из корня проекта на ПК выполните:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-remote-server.ps1
+```
+
+Скрипт подключится по SSH к серверу (по умолчанию `root@89.167.70.67`), в каталоге проекта на сервере (**/opt/minitms**) выполнит:
+- `git remote set-url origin https://github.com/Mumuaki/minitms_a.git`
+- `git fetch origin` и `git pull origin main`; при ошибке (конфликты или «untracked would be overwritten») — `git reset --hard origin/main`, чтобы сервер совпал с репозиторием
+- перезапуск backend (и frontend): через Docker Compose или systemd, в зависимости от того, что установлено.
+
+Если проект на сервере лежит в другом каталоге, откройте `scripts/sync-remote-server.ps1` и измените переменную `$REMOTE_PROJECT`.
+
+### Вариант 2: вручную на сервере
+
+Подключитесь по SSH к серверу и выполните в каталоге проекта:
+
+```bash
+cd /opt/minitms
+git remote set-url origin https://github.com/Mumuaki/minitms_a.git
+git fetch origin
+git pull origin main
+# перезапуск (один из вариантов):
+docker compose -f docker-compose.vps.yml restart backend frontend
+# или, если без Docker:
+systemctl restart minitms-backend minitms-frontend
+```
+
+---
+
 ## Важно
 
 - Файлы **backend/.env** и **.env** в корне **не попадают** в репозиторий (указаны в `.gitignore`) — секреты не загружаются.
-- На VPS после обновления кода из GitHub: `cd /opt/minitms && git pull && docker compose restart backend` (если на сервере настроен git и remote).
+- На VPS после обновления кода из GitHub используйте скрипт `scripts/sync-remote-server.ps1` или команды из раздела выше.

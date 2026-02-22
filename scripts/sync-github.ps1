@@ -34,7 +34,10 @@ if (-not $branch) { $branch = "main" }
 $remoteHasBranch = (& git ls-remote --heads origin $branch 2>$null)
 if ($remoteHasBranch) {
   Write-Host "2. git pull origin $branch..." -ForegroundColor Yellow
-  & git pull origin $branch --no-edit 2>$null | Out-Null
+  $prevErr = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  $null = & git pull origin $branch --no-edit 2>&1
+  $ErrorActionPreference = $prevErr
   if ($LASTEXITCODE -ne 0) { Write-Host "   (pull had issues, continuing)" -ForegroundColor Gray }
 } else {
   Write-Host "2. No branch '$branch' on remote yet (empty repo or first push). Skipping pull." -ForegroundColor Gray
