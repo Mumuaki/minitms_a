@@ -129,8 +129,23 @@ ROLE_PERMISSIONS: dict[str, Set[Permission]] = {
     },
 }
 
+def normalize_role(role: str | None) -> str:
+    """
+    Нормализует входную роль к каноническому значению RBAC.
 
-def has_permission(role: str, permission: Permission) -> bool:
+    Guest считается алиасом Observer для read-only доступа.
+    """
+    if not isinstance(role, str):
+        return ""
+    role_lower = role.strip().lower()
+    if not role_lower:
+        return ""
+    if role_lower == "guest":
+        return "observer"
+    return role_lower
+
+
+def has_permission(role: str | None, permission: Permission) -> bool:
     """
     Проверяет, имеет ли роль указанное разрешение.
     
@@ -147,14 +162,14 @@ def has_permission(role: str, permission: Permission) -> bool:
         >>> has_permission("observer", Permission.USER_CREATE)
         False
     """
-    role_lower = role.lower()
+    role_lower = normalize_role(role)
     if role_lower not in ROLE_PERMISSIONS:
         return False
     
     return permission in ROLE_PERMISSIONS[role_lower]
 
 
-def get_role_permissions(role: str) -> Set[Permission]:
+def get_role_permissions(role: str | None) -> Set[Permission]:
     """
     Возвращает все разрешения для роли.
     
@@ -164,30 +179,30 @@ def get_role_permissions(role: str) -> Set[Permission]:
     Returns:
         Множество разрешений или пустое множество если роль не найдена.
     """
-    role_lower = role.lower()
+    role_lower = normalize_role(role)
     return ROLE_PERMISSIONS.get(role_lower, set())
 
 
-def is_admin(role: str) -> bool:
+def is_admin(role: str | None) -> bool:
     """Проверяет, является ли роль администратором."""
-    return role.lower() == "administrator"
+    return normalize_role(role) == "administrator"
 
 
-def can_manage_users(role: str) -> bool:
+def can_manage_users(role: str | None) -> bool:
     """Проверяет, может ли роль управлять пользователями."""
     return has_permission(role, Permission.USER_CREATE)
 
 
-def can_edit_settings(role: str) -> bool:
+def can_edit_settings(role: str | None) -> bool:
     """Проверяет, может ли роль редактировать настройки."""
     return has_permission(role, Permission.SETTINGS_UPDATE)
 
 
-def can_send_email(role: str) -> bool:
+def can_send_email(role: str | None) -> bool:
     """Проверяет, может ли роль отправлять email."""
     return has_permission(role, Permission.EMAIL_SEND)
 
 
-def can_edit_finance(role: str) -> bool:
+def can_edit_finance(role: str | None) -> bool:
     """Проверяет, может ли роль редактировать финансовые планы."""
     return has_permission(role, Permission.FINANCE_EDIT)

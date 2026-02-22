@@ -1,0 +1,78 @@
+# Docker Compose для локальной разработки с hot-reload
+version: '3.8'
+
+services:
+  # Backend в режиме разработки
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: minitms-backend-dev
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/mini-tms}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - DEBUG=True
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - minitms-network
+
+  # Frontend в режиме разработки (Vite dev server)
+  frontend:
+    image: node:20-alpine
+    container_name: minitms-frontend-dev
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    command: sh -c "npm install && npm run dev -- --host"
+    depends_on:
+      - backend
+    networks:
+      - minitms-network
+
+  # PostgreSQL
+  postgres:
+    image: postgres:18-alpine
+    container_name: minitms-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mini-tms
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - minitms-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: minitms-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - minitms-network
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  minitms-network:
+    driver: bridge

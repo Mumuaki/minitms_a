@@ -103,6 +103,7 @@ class RoutePlanner:
         # Оптимизируем назначения для максимальной прибыли
         planned_routes, unassigned_cargos = self._optimize_assignments(
             compatible_assignments,
+            [cargo.id for cargo in cargos],
             planning_date,
             max_routes_per_vehicle,
             max_cargos_per_route
@@ -164,6 +165,7 @@ class RoutePlanner:
     def _optimize_assignments(
         self,
         compatible_assignments: Dict[str, List[str]],
+        all_available_cargo_ids: List[str],
         planning_date: datetime,
         max_routes_per_vehicle: int,
         max_cargos_per_route: int
@@ -178,9 +180,7 @@ class RoutePlanner:
         unassigned_cargos = []
 
         # Получаем все грузы
-        all_cargo_ids = set()
-        for cargo_ids in compatible_assignments.values():
-            all_cargo_ids.update(cargo_ids)
+        all_cargo_ids = set(all_available_cargo_ids)
 
         # Сортируем грузы по рентабельности (от большего к меньшему)
         cargo_profitability = {}

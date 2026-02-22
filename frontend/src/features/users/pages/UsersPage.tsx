@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { UsersTable } from '../components/UsersTable';
 import { UserModal } from '../components/UserModal';

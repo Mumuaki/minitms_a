@@ -2,6 +2,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { MainLayout } from './components/layout/MainLayout';
 import { UsersPage } from './features/users/pages/UsersPage';
+import { LoadsPage } from './features/loads/LoadsPage';
+import { DashboardPage } from './features/dashboard/pages/DashboardPage';
+import { FleetPage } from './features/fleet/pages/FleetPage';
+import { FinancePage } from './features/finance/pages/FinancePage';
+import { ReportsPage } from './features/reports/pages/ReportsPage';
+import { SettingsPage } from './features/settings/pages/SettingsPage';
+import { GpsPage } from './features/gps/pages/GpsPage';
 import './index.css';
 import { useEffect, useState } from 'react';
 
@@ -21,9 +28,6 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     </MainLayout>
   );
 };
-
-// Заглушки для страниц
-const DashboardPage = () => <h1>Дашборд</h1>; // Dashboard все еще заглушка
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('access_token'));
@@ -53,6 +57,42 @@ function App() {
           <Route path="/users" element={
             <ProtectedRoute>
               <UsersPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/loads" element={
+            <ProtectedRoute>
+              <LoadsPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/fleet" element={
+            <ProtectedRoute>
+              <FleetPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/gps" element={
+            <ProtectedRoute>
+              <GpsPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/finance" element={
+            <ProtectedRoute>
+              <FinancePage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/reports" element={
+            <ProtectedRoute>
+              <ReportsPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           } />
 

@@ -100,7 +100,13 @@ class TransEuClient:
                 
                 logger.info("Credentials submitted.")
                 await self.page.wait_for_url("**/exchange/offers", timeout=60000) # Increased timeout for login
-                logger.info("Login successful (New Session).")
+                logger.info("Login successful (New Session). Waiting for app load...")
+                try:
+                    await self.page.wait_for_selector('div[data-ctx="basic-filters"]', state='attached', timeout=30000)
+                    logger.info("App shell loaded (filters detected).")
+                except Exception as e:
+                    logger.warning(f"App shell wait timeout: {e}")
+                
                 return True
                 
             elif "/exchange/offers" in self.page.url:
@@ -160,44 +166,27 @@ class TransEuClient:
             ld_to = parse_dt(date_to)
             ud_from = parse_dt(unloading_date_from)
             ud_to = parse_dt(unloading_date_to)
-
-            # 1. Check Range (From <= To)
-            if ld_from and ld_to and ld_from > ld_to:
-                raise ValueError(f"Loading Date error: 'From' ({date_from}) cannot be later than 'To' ({date_to})")
-            if ud_from and ud_to and ud_from > ud_to:
-                raise ValueError(f"Unloading Date error: 'From' ({unloading_date_from}) cannot be later than 'To' ({unloading_date_to})")
-
-            # 2. Check Logic (Unload >= Load)
-            # Unloading To (arrival) cannot be before Loading From (departure)
-            if ld_from and ud_to and ud_to < ld_from:
-                raise ValueError(f"Logical error: Unloading To ({unloading_date_to}) is earlier than Loading From ({date_from})")
-            
-            # Warn if Unload From < Load From
-            if ld_from and ud_from and ud_from < ld_from:
-                 logger.warning(f"Note: Unloading From ({unloading_date_from}) is earlier than Loading From ({date_from}). This might be invalid.")
-
-            # --- 0. Date Validation ---
-            from datetime import datetime
             now_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            
-            def to_dt(s):
-                return datetime.strptime(s, "%d.%m.%Y") if s else None
 
-            d_l_from = to_dt(date_from)
-            d_l_to = to_dt(date_to)
-            d_u_from = to_dt(unloading_date_from)
-            d_u_to = to_dt(unloading_date_to)
-
-            error_msg = None
-            if d_l_from and d_l_from < now_date:
-                error_msg = "Задан неверный диапазон дат. Дата начала загрузки не может быть меньше текущей даты"
-            elif d_l_from and d_l_to and d_l_from > d_l_to:
-                error_msg = "Дата завершения загрузки не может быть меньше даты начала"
-            # Strict Rule removed to be more flexible, Trans.eu validates it anyway
+            # 1. Basic Validity Checks
+            if ld_from and ld_from < now_date:
+                raise ValueError(f"Loading Date (From) {date_from} cannot be in the past.")
             
-            if error_msg:
-                logger.error(f"Validation Error: {error_msg}")
-                raise ValueError(error_msg)
+            if ld_from and ld_to and ld_from > ld_to:
+                raise ValueError(f"Loading Date: From ({date_from}) > To ({date_to})")
+                
+            if ud_from and ud_to and ud_from > ud_to:
+                raise ValueError(f"Unloading Date: From ({unloading_date_from}) > To ({unloading_date_to})")
+
+            # 2. Business Rule: Unloading Dates >= Loading Date (To)
+            # "Ни одна дата разгрузки не может быть меньше даты, указанной в правом поле Даты загрузки"
+            if ld_to:
+                if ud_from and ud_from < ld_to:
+                    raise ValueError(f"Business Rule Violation: Unloading From ({unloading_date_from}) must be >= Loading To ({date_to})")
+                
+                # Check Unloading To as well (if unloading starts later, it obviously ends later, but if from is None...)
+                if ud_to and ud_to < ld_to:
+                    raise ValueError(f"Business Rule Violation: Unloading To ({unloading_date_to}) must be >= Loading To ({date_to})")
 
             logger.info("Initializing search workflow...")
 
@@ -384,7 +373,27 @@ class TransEuClient:
             await search_btn.click()
             
             await self.page.wait_for_timeout(3000)
-            return True
+            
+            # --- 7. Data Extraction (Import) ---
+            logger.info("Extracting search results...")
+            from backend.src.infrastructure.external_services.trans_eu import parser, mapper
+            
+            # Execute JS parser
+            js_script = parser.get_extraction_script()
+            raw_offers = await self.page.evaluate(js_script)
+            logger.info(f"Extracted {len(raw_offers)} raw items.")
+            
+            # Map to Domain
+            results = []
+            for raw in raw_offers:
+                try:
+                    mapped = mapper.map_to_cargo(raw)
+                    results.append(mapped)
+                except Exception as map_err:
+                    logger.warning(f"Failed to map item: {map_err}")
+            
+            logger.info(f"Successfully mapped {len(results)} offers.")
+            return results
 
         except Exception as e:
             logger.error(f"Search failed: {e}")

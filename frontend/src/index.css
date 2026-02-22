@@ -180,3 +180,43 @@ button {
   animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Layout Utilities */
+.page-container {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.bg-card { background-color: var(--bg-card); }
+.border-border { border-color: var(--border-color); }
+.border { border-width: 1px; border-style: solid; }
+.rounded-lg { border-radius: var(--radius-md); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.p-6 { padding: 1.5rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-1 { margin-top: 0.25rem; }
+.text-sm { font-size: 0.875rem; }
+.text-xs { font-size: 0.75rem; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+
+/* Grid System */
+.grid { display: grid; }
+.gap-4 { gap: 1rem; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+
+@media (min-width: 768px) {
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

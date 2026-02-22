@@ -2,6 +2,7 @@ import asyncio
 import logging
 import sys
 import os
+import pytest
 
 # Добавляем корневую директорию проекта в sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
@@ -14,6 +15,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+pytestmark = pytest.mark.asyncio
+
 
 async def test_extraction():
     """

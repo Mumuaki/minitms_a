@@ -53,21 +53,23 @@ def create_access_token(
         True
     """
     # Время истечения
+    now = datetime.now(UTC)
     if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    # Payload токена
+    # Payload токена (iat/exp должны быть Unix timestamp, не datetime)
     claims = {
         "sub": str(user_id),  # Subject - ID пользователя
         "role": role,
         "type": "access",
-        "iat": datetime.now(UTC),  # Issued At
-        "exp": expire,  # Expiration
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
     }
     
-    return jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
+    return token if isinstance(token, str) else token.decode("utf-8")
 
 
 def create_refresh_token(
@@ -85,20 +87,22 @@ def create_refresh_token(
         JWT токен в виде строки.
     """
     # Время жизни зависит от флага "Запомнить меня"
+    now = datetime.now(UTC)
     if remember_me:
-        expire = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        expire = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     else:
-        expire = datetime.now(UTC) + timedelta(days=1)
+        expire = now + timedelta(days=1)
     
-    # Payload токена
+    # Payload токена (iat/exp должны быть Unix timestamp, не datetime)
     claims = {
         "sub": str(user_id),
         "type": "refresh",
-        "iat": datetime.now(UTC),
-        "exp": expire,
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
     }
     
-    return jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
+    return token if isinstance(token, str) else token.decode("utf-8")
 
 
 def decode_token(token: str) -> dict:

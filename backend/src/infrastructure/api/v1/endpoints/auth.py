@@ -69,43 +69,73 @@ async def login(
     Принимает форму OAuth2 (username = email, password).
     Возвращает пару JWT токенов.
     """
-    # Получаем пользователя по email (username в OAuth2 форме)
-    user = user_repo.get_by_email(form_data.username)
+    # #region agent log
+    import traceback
+    import json
+    _log_path = "/app/.cursor/debug.log"
+    try:
+        import os
+        _alt = os.path.join(os.path.dirname(__file__), "../../../../../.cursor/debug.log")
+        if os.path.exists(os.path.dirname(_alt)) or os.path.exists("d:/MiniTMS/.cursor"):
+            _log_path = "d:/MiniTMS/.cursor/debug.log" if os.name == "nt" else _alt
+    except Exception:
+        pass
+    def _agent_log(msg: str, data: dict, h: str):
+        try:
+            import os
+            _d = os.path.dirname(_log_path)
+            if _d:
+                os.makedirs(_d, exist_ok=True)
+            with open(_log_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps({"location": "auth.py:login", "message": msg, "data": data, "hypothesisId": h, "timestamp": __import__("time").time() * 1000}) + "\n")
+        except Exception:
+            pass
+    _agent_log("login_start", {"username_len": len(form_data.username or ""), "password_len": len(form_data.password or "")}, "A")
+    # #endregion
+    try:
+        # Получаем пользователя по email (username в OAuth2 форме)
+        user = user_repo.get_by_email(form_data.username)
+        _agent_log("get_by_email_done", {"user_found": user is not None, "user_id": user.id if user else None}, "A")
     
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    
+        _agent_log("verify_active", {"is_active": user.is_active}, "B")
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is disabled",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    
+        _agent_log("verify_password_start", {}, "B")
+        if not verify_password(form_data.password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    
+        role_value = user.role.value if hasattr(user.role, 'value') else user.role
+        _agent_log("create_tokens_start", {"role_value": str(role_value)}, "C")
+        access_token = create_access_token(user_id=user.id, role=role_value)
+        refresh_token = create_refresh_token(user_id=user.id, remember_me=False)
+        _agent_log("create_tokens_done", {}, "C")
+    
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
         )
-    
-    # Проверяем активность аккаунта
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Account is disabled",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # Проверяем пароль
-    if not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # Генерируем токены
-    role_value = user.role.value if hasattr(user.role, 'value') else user.role
-    
-    access_token = create_access_token(user_id=user.id, role=role_value)
-    refresh_token = create_refresh_token(user_id=user.id, remember_me=False)
-    
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        _agent_log("login_exception", {"error": str(e), "type": type(e).__name__, "traceback": traceback.format_exc()}, "E")
+        raise
 
 
 @router.post(

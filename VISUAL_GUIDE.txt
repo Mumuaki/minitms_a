@@ -1,0 +1,349 @@
+﻿╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                    MiniTMS Server Management Tools                         ║
+║                         Visual Navigation Guide                            ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          🚀 QUICK START PATH                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Step 1                Step 2              Step 3
+    ┌─────────┐          ┌─────────┐         ┌─────────┐
+    │  Open   │   →      │   cd    │   →     │ Launch  │
+    │PowerShell│         │d:\MiniTMS│        │launcher │
+    └─────────┘          └─────────┘         └─────────┘
+                                                   │
+                                                   ▼
+                                          ┌──────────────┐
+                                          │ Interactive  │
+                                          │    Menu      │
+                                          └──────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        📂 FILE STRUCTURE                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+d:\MiniTMS\
+│
+├─ 🎯 START HERE
+│  ├─ START_HERE.md .......................... Your entry point (2 min)
+│  ├─ SETUP_INSTRUCTIONS.md ................. Setup guide
+│  ├─ launcher.ps1 .......................... Interactive menu ⭐
+│  └─ INDEX.md .............................. Navigation map
+│
+├─ 🔍 DIAGNOSTICS (Run these to check system health)
+│  ├─ check_server.ps1 ..................... Quick check (30 sec) ⭐
+│  ├─ check_modules.ps1 .................... 10 modules (1-2 min)
+│  ├─ test_business_requirements.ps1 ....... Business rules (2-3 min)
+│  ├─ test_features.ps1 .................... 20 features (1-2 min)
+│  └─ run_full_diagnostic.ps1 .............. Full report (5-7 min)
+│
+├─ 🛠️ MANAGEMENT (Fix problems)
+│  ├─ fix_server.ps1 ....................... 20 repair options ⭐
+│  └─ connect_server.ps1 ................... Direct SSH access
+│
+└─ 📚 DOCUMENTATION (Learn more)
+   ├─ QUICK_START.md ....................... Quick reference
+   ├─ README_SERVER_SCRIPTS.md ............. Complete guide
+   ├─ SERVER_MANAGEMENT.md ................. Advanced manual
+   ├─ FILES_OVERVIEW.md .................... File descriptions
+   ├─ SUMMARY.md ........................... This summary
+   └─ VISUAL_GUIDE.txt ..................... This file
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      🎮 LAUNCHER MENU STRUCTURE                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                            ┌──────────────────┐
+                            │  launcher.ps1    │
+                            └────────┬─────────┘
+                                     │
+                ┌────────────────────┼────────────────────┐
+                │                    │                    │
+         ┌──────▼──────┐      ┌─────▼─────┐      ┌──────▼──────┐
+         │ DIAGNOSTICS │      │MANAGEMENT │      │DOCUMENTATION│
+         └──────┬──────┘      └─────┬─────┘      └──────┬──────┘
+                │                   │                    │
+    ┌───────────┼───────────┐       │          ┌─────────┼─────────┐
+    │           │           │       │          │         │         │
+┌───▼───┐  ┌───▼───┐  ┌───▼───┐ ┌─▼──┐  ┌────▼────┐ ┌──▼──┐ ┌───▼───┐
+│Quick  │  │Module │  │Business│ │Fix │  │Quick    │ │Full │ │Index  │
+│Check  │  │Check  │  │Reqs    │ │Menu│  │Start    │ │Docs │ │       │
+└───────┘  └───────┘  └───────┘ └────┘  └─────────┘ └─────┘ └───────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    🔄 TYPICAL WORKFLOW                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Daily Check (5 minutes):
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ Open         │ →  │ Run          │ →  │ Review       │
+│ PowerShell   │    │check_server  │    │ Results      │
+└──────────────┘    └──────────────┘    └──────┬───────┘
+                                               │
+                                    ┌──────────┴──────────┐
+                                    │                     │
+                            ┌───────▼────────┐    ┌──────▼──────┐
+                            │ All Green ✓    │    │ Red Errors ✗│
+                            │ → Done!        │    │ → Fix Menu  │
+                            └────────────────┘    └─────────────┘
+
+Weekly Check (15 minutes):
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ Run          │ →  │ Run          │ →  │ Check        │ →  │ Backup       │
+│check_server  │    │check_modules │    │ Logs         │    │ Database     │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+
+Monthly Check (30 minutes):
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ Full         │ →  │ Review       │ →  │ Update       │ →  │ Optimize     │
+│ Diagnostic   │    │ Report       │    │ System       │    │ Database     │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    🎯 DECISION TREE                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                        Start Here
+                            │
+                    ┌───────┴───────┐
+                    │ What do you   │
+                    │ want to do?   │
+                    └───────┬───────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+   ┌────▼────┐         ┌────▼────┐        ┌────▼────┐
+   │ Check   │         │  Fix    │        │ Learn   │
+   │ System  │         │Problems │        │  More   │
+   └────┬────┘         └────┬────┘        └────┬────┘
+        │                   │                   │
+   ┌────▼────┐         ┌────▼────┐        ┌────▼────┐
+   │launcher │         │  fix_   │        │START_   │
+   │.ps1     │         │server   │        │HERE.md  │
+   │Option 1 │         │.ps1     │        │         │
+   └─────────┘         └─────────┘        └─────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    🏗️ SYSTEM ARCHITECTURE                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Your Computer                          Server (89.167.70.67)
+┌─────────────────┐                   ┌─────────────────────────┐
+│                 │                   │                         │
+│  PowerShell     │                   │  ┌───────────────────┐  │
+│  Scripts        │                   │  │   PostgreSQL      │  │
+│  ┌───────────┐  │    SSH (Port 22)  │  │   (minitms DB)    │  │
+│  │launcher   │──┼───────────────────┼─→│                   │  │
+│  │.ps1       │  │                   │  └───────────────────┘  │
+│  └───────────┘  │                   │                         │
+│  ┌───────────┐  │                   │  ┌───────────────────┐  │
+│  │check_     │──┼───────────────────┼─→│   Redis Cache     │  │
+│  │server.ps1 │  │                   │  │   (Port 6379)     │  │
+│  └───────────┘  │                   │  └───────────────────┘  │
+│  ┌───────────┐  │                   │                         │
+│  │fix_       │──┼───────────────────┼─→│  ┌───────────────┐  │
+│  │server.ps1 │  │                   │  │  │ Backend API   │  │
+│  └───────────┘  │                   │  │  │ (Port 8000)   │  │
+│                 │                   │  │  └───────────────┘  │
+└─────────────────┘                   │  │                     │
+                                      │  │  ┌───────────────┐  │
+                                      │  │  │ Frontend      │  │
+                                      │  │  │ (Port 3000)   │  │
+                                      │  │  └───────────────┘  │
+                                      │  │                     │
+                                      └──┴─────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    📊 MODULE COVERAGE                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+✓ MODULE 1: Authentication & Authorization
+  └─ Login, Roles (Admin, Director, Dispatcher, Guest)
+
+✓ MODULE 2: Fleet Management
+  └─ Vehicles, Dimensions (L×W×H), GPS tracking
+
+✓ MODULE 3: Trans.eu Web Scraping
+  └─ Automated cargo search, filtering
+
+✓ MODULE 4: Profitability Calculation
+  └─ €/km rates, color coding (🔴⚪🟡🟢)
+
+✓ MODULE 5: Route Planning
+  └─ A→B→C routes, OSM integration
+
+✓ MODULE 6: GPS Integration
+  └─ GPS Dozor, real-time tracking
+
+✓ MODULE 7: Email Communication
+  └─ Templates, limits (50/hour, 30sec)
+
+✓ MODULE 8: Financial Planning
+  └─ Revenue, Margin, Mileage tracking
+
+✓ MODULE 9: Google Sheets Integration
+  └─ 24 columns, auto-sync
+
+✓ MODULE 10: Settings & Configuration
+  └─ System settings, user preferences
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    🎨 COLOR CODING GUIDE                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Script Output Colors:
+  🟢 Green ✓  = Success / OK
+  🟡 Yellow ⚠ = Warning / Attention needed
+  🔴 Red ✗   = Error / Failed
+  🔵 Blue ℹ  = Information
+  ⚪ Gray    = Neutral / Skipped
+
+HTTP Status Codes:
+  200 = ✅ OK
+  401 = ⚠️ Authentication required (normal for protected endpoints)
+  404 = ❌ Not found
+  500 = ❌ Server error
+  502/503 = ❌ Service unavailable
+
+Profitability Colors (€/km):
+  🔴 Red    < 0.54      Unprofitable
+  ⚪ Gray   0.54-0.59   Low profit
+  🟡 Yellow 0.60-0.79   Medium profit
+  🟢 Green  ≥ 0.80      High profit
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    ⚡ QUICK COMMANDS                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Open PowerShell:                Win + X → Windows PowerShell
+Navigate to folder:             cd d:\MiniTMS
+List files:                     ls
+Run launcher:                   .\launcher.ps1
+Quick check:                    .\check_server.ps1
+Fix problems:                   .\fix_server.ps1
+Connect to server:              .\connect_server.ps1
+Full diagnostic:                .\run_full_diagnostic.ps1
+
+On Server (after SSH):
+Check services:                 systemctl status minitms-backend
+View logs:                      journalctl -u minitms-backend -n 50
+Restart service:                systemctl restart minitms-backend
+Check database:                 sudo -u postgres psql -d minitms
+Check Redis:                    redis-cli ping
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    🆘 EMERGENCY PROCEDURES                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Backend Down:
+  1. .\fix_server.ps1
+  2. Choose: 1 (Restart Backend)
+  3. Choose: 6 (View Logs)
+
+Database Issues:
+  1. .\fix_server.ps1
+  2. Choose: 3 (Restart PostgreSQL)
+  3. Choose: 8 (Check Migrations)
+  4. Choose: 9 (Run Migrations if needed)
+
+Everything Broken:
+  1. .\fix_server.ps1
+  2. Choose: 5 (Restart All Services)
+  3. Wait 10 seconds
+  4. Choose: 14 (Check Status)
+
+Need Backup:
+  1. .\fix_server.ps1
+  2. Choose: 17 (Backup Database)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    📞 SUPPORT INFORMATION                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Server Details:
+  IP Address:    89.167.70.67
+  User:          root
+  Auth:          SSH key
+  SSH Port:      22
+
+Service Ports:
+  Backend:       8000
+  Frontend:      3000 (or 80)
+  PostgreSQL:    5432
+  Redis:         6379
+
+URLs:
+  Backend API:   http://89.167.70.67:8000
+  API Docs:      http://89.167.70.67:8000/docs
+  Frontend:      http://89.167.70.67:3000
+
+Documentation:
+  Main Spec:     docs/MiniTMS_Full_Doc_Structure.md
+  New Features:  docs/New_Features_Documentation.md
+  Backend .env:  backend/.env
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    ✅ CHECKLIST                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Before Starting:
+  □ PowerShell installed (5.1+)
+  □ SSH client installed
+  □ SSH key configured
+  □ Server accessible (ping works)
+  □ Port 22 open
+  □ Execution policy allows scripts
+  □ In d:\MiniTMS folder
+
+First Time Setup:
+  □ Read START_HERE.md
+  □ Read SETUP_INSTRUCTIONS.md
+  □ Test SSH: ssh root@89.167.70.67
+  □ Run: .\launcher.ps1
+  □ Run: .\check_server.ps1
+  □ Review results
+
+Daily Tasks:
+  □ Run quick check (30 sec)
+  □ Review any errors
+  □ Check logs if needed
+
+Weekly Tasks:
+  □ Run module check (1-2 min)
+  □ Check disk space
+  □ Review logs
+  □ Backup database
+
+Monthly Tasks:
+  □ Full diagnostic (5-7 min)
+  □ Update dependencies
+  □ Optimize database
+  □ Review security
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                         🎉 YOU'RE ALL SET!                                 ║
+║                                                                            ║
+║                    Start with: .\launcher.ps1                              ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Version: 1.0
+Date: 2026-02-20
+Status: Production Ready ✅

@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   Users, 
@@ -7,14 +6,18 @@ import {
   Truck, 
   Package, 
   FileText, 
-  LogOut 
+  LogOut,
+  DollarSign,
+  Navigation
 } from 'lucide-react';
 
 const MENU_ITEMS = [
   { icon: LayoutDashboard, label: 'Дашборд', path: '/' },
   { icon: Users, label: 'Пользователи', path: '/users' },
   { icon: Truck, label: 'Автопарк', path: '/fleet' },
+  { icon: Navigation, label: 'GPS трекер', path: '/gps' },
   { icon: Package, label: 'Грузы', path: '/loads' },
+  { icon: DollarSign, label: 'Финансы', path: '/finance' },
   { icon: FileText, label: 'Отчеты', path: '/reports' },
   { icon: Settings, label: 'Настройки', path: '/settings' },
 ];

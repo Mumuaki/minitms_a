@@ -7,6 +7,8 @@ Domain Service: ProfitabilityCalculator
 from typing import Optional
 from backend.src.domain.value_objects.profitability import Profitability, ProfitabilityStatus
 
+MIN_DISTANCE_KM = 10.0
+
 
 class ProfitabilityCalculator:
     """
@@ -42,7 +44,7 @@ class ProfitabilityCalculator:
         Returns:
             Profitability: Объект с расчетными показателями
         """
-        if not cargo_price or not distance:
+        if cargo_price is None or distance is None:
             return Profitability(
                 rate_per_km=None,
                 total_cost=None,
@@ -52,25 +54,27 @@ class ProfitabilityCalculator:
             )
 
         total_distance = distance + (empty_run_distance or 0)
+        if 0 < total_distance < MIN_DISTANCE_KM:
+            total_distance = MIN_DISTANCE_KM
 
         # Расчет затрат
         total_cost = 0.0
 
         # Затраты на топливо
-        if fuel_consumption and fuel_price:
+        if fuel_consumption is not None and fuel_price is not None:
             fuel_cost = (fuel_consumption / 100) * total_distance * fuel_price
             total_cost += fuel_cost
 
         # Амортизация
-        if depreciation_per_km:
+        if depreciation_per_km is not None:
             total_cost += depreciation_per_km * total_distance
 
         # Зарплата водителя
-        if driver_salary_per_km:
+        if driver_salary_per_km is not None:
             total_cost += driver_salary_per_km * total_distance
 
         # Прочие расходы
-        if other_costs_per_km:
+        if other_costs_per_km is not None:
             total_cost += other_costs_per_km * total_distance
 
         # Расчет ставки за км (рентабельность)

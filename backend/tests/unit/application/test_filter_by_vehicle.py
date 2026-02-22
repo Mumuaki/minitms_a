@@ -98,9 +98,14 @@ class TestFilterByVehicleUseCase:
             source="trans.eu",
             loading_place=LocationDto(address="Loading", country_code="DE", lat=52.52, lon=13.405),
             unloading_place=LocationDto(address="Unloading", country_code="FR", lat=48.8566, lon=2.3522),
+            loading_date=date(2026, 1, 1),
+            unloading_date=date(2026, 1, 2),
+            weight=8.0,
+            body_type="TENT",
             price=1000.0,
             distance_trans_eu=500,
             distance_osm=520,
+            profitability=None,
             is_hidden=False,
             created_at="2026-01-01T00:00:00"
         )

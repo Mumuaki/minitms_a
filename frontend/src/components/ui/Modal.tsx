@@ -26,11 +26,12 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
     };
   }, [isOpen, onClose]);
 
+
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal">
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
           <button className="modal-close" onClick={onClose}>

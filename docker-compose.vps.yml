@@ -1,0 +1,41 @@
+# Docker Compose для VPS с уже установленными PostgreSQL и Redis
+# Используйте этот файл, если PostgreSQL и Redis уже работают на VPS отдельно
+version: '3.8'
+
+services:
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: minitms-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    # Используем host network для доступа к локальному PostgreSQL и Redis
+    network_mode: "host"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: minitms-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

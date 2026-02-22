@@ -25,7 +25,7 @@ from backend.src.infrastructure.persistence.sqlalchemy.repositories.cargo_reposi
 from backend.src.domain.repositories.vehicle_repository import VehicleRepository
 from backend.src.infrastructure.persistence.sqlalchemy.repositories.vehicle_repository_impl import VehicleRepositoryImpl
 from backend.src.application.ports.maps_port import MapsPort
-from backend.src.infrastructure.external_services.google_maps.distance_calculator import GoogleMapsDistanceCalculator
+from backend.src.infrastructure.external_services.osrm.adapter import OSRMMapsAdapter
 from backend.src.domain.services.route_optimizer import RouteOptimizer
 from backend.src.domain.services.profitability_calculator import ProfitabilityCalculator
 from backend.src.domain.services.route_planner import RoutePlanner
@@ -145,7 +145,7 @@ def get_vehicle_repository(db: Session = Depends(get_db)) -> VehicleRepository:
 
 def get_maps_service() -> MapsPort:
     """Dependency для получения сервиса карт."""
-    return GoogleMapsDistanceCalculator()
+    return OSRMMapsAdapter()
 
 
 def get_route_optimizer(maps_service: MapsPort = Depends(get_maps_service)) -> RouteOptimizer:

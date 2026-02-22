@@ -149,6 +149,8 @@ class TestRoutePlanner:
             "city": "Warsaw",
             "country": "Poland"
         }
+        mock_cargo2.loading_date = datetime(2024, 1, 3).date()
+        mock_cargo2.unloading_date = datetime(2024, 1, 4).date()
 
         mock_cargo_repository.get_by_ids.return_value = [mock_cargo_repository.get_by_id.return_value, mock_cargo2]
         mock_cargo_repository.get_by_id.side_effect = lambda x: {

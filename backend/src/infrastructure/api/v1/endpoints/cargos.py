@@ -27,6 +27,8 @@ from backend.src.infrastructure.api.v1.schemas.cargo_schema import (
 router = APIRouter(prefix="/cargos", tags=["Cargos"])
 
 
+from backend.src.application.use_cases.cargo.import_trans_eu_offers import ImportTransEuOffersUseCase
+
 # ============================================================================
 # DEPENDENCIES
 # ============================================================================
@@ -45,10 +47,53 @@ def get_filter_by_vehicle_use_case(repo: CargoRepository = Depends(get_cargo_rep
     """Dependency для получения use case фильтрации по ТС."""
     return FilterByVehicleUseCase(repo)
 
+def get_import_trans_eu_offers_use_case(repo: CargoRepository = Depends(get_cargo_repository)) -> ImportTransEuOffersUseCase:
+    """Dependency для получения use case импорта грузов."""
+    return ImportTransEuOffersUseCase(repo)
+
 
 # ============================================================================
 # ENDPOINTS
 # ============================================================================
+
+@router.post(
+    "/import_trans_eu",
+    response_model=List[dict], # Simplification for now, returning raw DTOs or items
+    summary="Запуск импорта из Trans.eu",
+    description="Запускает скрапинг Trans.eu по заданным параметрам и сохраняет результаты в БД."
+)
+async def import_trans_eu(
+    loading: str = Query(..., description="Место загрузки"),
+    unloading: str = Query(..., description="Место выгрузки"),
+    loading_radius: int = Query(75, description="Радиус загрузки"),
+    unloading_radius: int = Query(75, description="Радиус выгрузки"),
+    date_from: Optional[str] = Query(None, description="Дата загрузки с (DD.MM.YYYY)"),
+    date_to: Optional[str] = Query(None, description="Дата загрузки по (DD.MM.YYYY)"),
+    unloading_date_from: Optional[str] = Query(None, description="Дата выгрузки с (DD.MM.YYYY)"),
+    unloading_date_to: Optional[str] = Query(None, description="Дата выгрузки по (DD.MM.YYYY)"),
+    weight_to: str = Query("0.9", description="Макс вес"),
+    length_to: Optional[str] = Query(None, description="Макс длина"),
+    use_case: ImportTransEuOffersUseCase = Depends(get_import_trans_eu_offers_use_case)
+):
+    try:
+        result = await use_case.execute(
+            loading=loading,
+            unloading=unloading,
+            loading_radius=loading_radius,
+            unloading_radius=unloading_radius,
+            date_from=date_from,
+            date_to=date_to,
+            unloading_date_from=unloading_date_from,
+            unloading_date_to=unloading_date_to,
+            weight_to=weight_to,
+            length_to=length_to
+        )
+        # return result # return raw DTOs
+        # Simple serialization for response
+        return [c.dict() for c in result]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get(
     "/search",

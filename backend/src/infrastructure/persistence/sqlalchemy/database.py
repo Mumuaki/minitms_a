@@ -13,11 +13,12 @@ from dotenv import load_dotenv
 
 from backend.src.domain.entities.user import Base
 
-# Загружаем переменные окружения из .env
-load_dotenv(os.path.join(os.path.dirname(__file__), "../../../../../backend/.env"))
-
-# URL базы данных
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/minitms")
+# Загружаем .env если есть (в Docker переменные задаются через environment)
+_env_path = os.path.join(os.path.dirname(__file__), "../../../../../backend/.env")
+if os.path.exists(_env_path):
+    load_dotenv(_env_path)
+# В Docker: DATABASE_URL приходит из docker-compose environment
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/mini-tms")
 
 
 # Engine — подключение к БД

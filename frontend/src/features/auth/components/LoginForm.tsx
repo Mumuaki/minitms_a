@@ -19,6 +19,7 @@ export const LoginForm = () => {
       
       // Сохраняем токены
       localStorage.setItem('access_token', response.access_token);
+      localStorage.setItem('refresh_token', response.refresh_token);
       // Если есть refresh token, его тоже стоит сохранить. В текущем API login возвращает access_token и token_type.
       // Проверим ответ в authService.ts (TokenResponse)
 
