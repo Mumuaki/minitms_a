@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigation, RefreshCw, CheckCircle, XCircle, MapPin } from 'lucide-react';
 import { apiClient } from '../../../infrastructure/api/client';
 

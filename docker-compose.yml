@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -51,11 +49,11 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/mini-tms
-      - REDIS_URL=redis://redis:6379/0
+      # DATABASE_URL и REDIS_URL берутся из backend/.env (не переопределять хост в Docker: postgres, redis)
+      - PYTHONPATH=/app
     volumes:
-      - ./backend:/app
-      - backend_cache:/app/.cache
+      - .:/app
+      - backend_cache:/app/backend/.cache
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -63,7 +61,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - minitms-network
 

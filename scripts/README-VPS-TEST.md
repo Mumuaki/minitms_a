@@ -6,13 +6,13 @@
 
 ```bash
 cd /opt/minitms
-bash scripts/vps-server-check-and-start.sh
+# Если на VPS только docker-compose.yml:
+docker compose up -d --build
+# Если при логине ошибка 500 (Internal Server Error) — выполните один раз:
+bash scripts/vps-fix-backend-network.sh
 ```
 
-Скрипт:
-- проверит, что Docker запущен;
-- при необходимости поднижет backend и frontend (`docker compose -f docker-compose.vps.yml up -d --build`);
-- проверит ответы `/health` и главной страницы фронтенда.
+Либо: `bash scripts/vps-server-check-and-start.sh` (если есть docker-compose.vps.yml). Скрипт проверяет Docker, поднимает сервисы, проверяет `/health` и фронтенд.
 
 ## Шаг 2: С вашего компьютера — проверить доступность
 
@@ -62,9 +62,21 @@ GPS_DOZOR_PASSWORD=ваш-пароль
 
 ### Проверка обновления локации ТС на VPS (почему в карточке всё ещё Dortmund)
 
-1. **Убедитесь, что на сервере развёрнут новый backend** (файлы `backend/.../dozor_gps_adapter.py`, `backend/.../refresh_vehicle_location.py`, обновлённые `add_vehicle.py` и `update_vehicle.py`). Если деплой через git: `git pull` в `/opt/minitms`, затем `docker compose restart backend`.
+1. **Убедитесь, что на сервере развёрнут новый backend** (файлы `backend/.../dozor_gps_adapter.py`, `backend/.../refresh_vehicle_location.py`, обновлённые `add_vehicle.py` и `update_vehicle.py`).
+   - **Если на VPS есть git:** `git pull` в `/opt/minitms`, затем `docker compose restart backend`.
+   - **Если git на VPS нет** — скопируйте файлы с ПК (см. ниже «Копирование backend на VPS»).
 
-2. **Проверьте `backend/.env` на VPS:** должны быть заданы `GPS_DOZOR_USERNAME` и `GPS_DOZOR_PASSWORD`. После правок: `docker compose restart backend`.
+2. **Обязательно задайте Dozor в `backend/.env` на VPS** — иначе в карточке будет подставляться тестовая локация (Dortmund). На сервере:
+   ```bash
+   nano /opt/minitms/backend/.env
+   ```
+   Добавьте или проверьте строки (подставьте свои учётные данные Dozor):
+   ```env
+   GPS_DOZOR_URL=https://a1.gpsguard.eu/api/v1/vehicle/
+   GPS_DOZOR_USERNAME=ваш_логин_dozor
+   GPS_DOZOR_PASSWORD=ваш_пароль_dozor
+   ```
+   Сохраните, затем: `docker compose restart backend`.
 
 3. **Запустите тест на сервере** (из каталога проекта):
    ```bash
@@ -77,6 +89,25 @@ GPS_DOZOR_PASSWORD=ваш-пароль
    docker compose logs --tail=100 backend | grep -i dozor
    ```
    Ожидаемые сообщения: `Dozor: credentials not set` (нет учётки), `Dozor: fetched N vehicles`, `Dozor: matched ...` или `Dozor: no vehicle matched` (тогда смотрите ключи из шага 3 и при необходимости добавьте поле в адаптер).
+
+### Копирование backend на VPS (если на сервере нет git)
+
+**С ПК (PowerShell), из каталога проекта `d:\MiniTMS`:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/deploy-backend-to-vps.ps1
+```
+
+Скрипт копирует через **scp** на `root@89.167.70.67` в `/opt/minitms` файлы:
+- `backend/src/infrastructure/external_services/gps/dozor_gps_adapter.py`
+- `backend/src/application/use_cases/fleet/add_vehicle.py`
+- `backend/src/application/use_cases/fleet/update_vehicle.py`
+- `backend/src/application/use_cases/fleet/refresh_vehicle_location.py`
+- `backend/src/infrastructure/api/v1/endpoints/fleet.py`
+
+Требуется: **ssh/scp** (например, [OpenSSH](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse) или Git Bash). При первом запросе введите пароль от `root` на VPS. После копирования на VPS выполните: `docker compose restart backend`.
+
+**Ручное копирование (если scp недоступен):** создайте на ПК архив папки `backend` (или только указанных подпапок), загрузите его на VPS (например, через WinSCP или веб-панель), на VPS распакуйте в `/opt/minitms`, затем `docker compose restart backend`.
 
 ---
 

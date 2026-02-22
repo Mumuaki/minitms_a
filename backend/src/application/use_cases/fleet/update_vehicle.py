@@ -15,14 +15,16 @@ class UpdateVehicleUseCase:
         self.gps_guard = GpsGuardAdapter()
         self.mock_gps = MockGpsService()
 
-    def _get_location(self, tracker_id: str):
-        # Prefer GPS Dozor (same source as /gps/vehicles) so fleet shows real location
-        loc, updated = self.dozor_gps.get_vehicle_location(tracker_id)
+    def _get_location(self, tracker_id: str, license_plate: Optional[str] = None):
+        # Prefer GPS Dozor; match by tracker_id or license_plate
+        loc, updated = self.dozor_gps.get_vehicle_location(tracker_id, license_plate=license_plate)
         if loc:
             return loc, updated
         loc, updated = self.gps_guard.get_vehicle_location(tracker_id)
         if loc:
             return loc, updated
+        if self.dozor_gps.is_configured():
+            return None, None  # Dozor configured but no match — don't show fake location
         return self.mock_gps.get_vehicle_location(tracker_id)
 
     def execute(self, vehicle_id: int, vehicle_data: VehicleCreate) -> Optional[VehicleResponse]:
@@ -49,7 +51,7 @@ class UpdateVehicleUseCase:
         # Logic: If changed OR valid and currently null location -> fetch.
         # For this task, let's always refresh if ID is present to simulate "pulling actual data".
         if vehicle.gps_tracker_id:
-             loc, last_updated = self._get_location(vehicle.gps_tracker_id)
+             loc, last_updated = self._get_location(vehicle.gps_tracker_id, license_plate=vehicle.license_plate)
              vehicle.current_location = loc
              vehicle.gps_last_updated = last_updated
         elif not vehicle.gps_tracker_id:

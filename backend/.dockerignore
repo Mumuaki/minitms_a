@@ -1,0 +1,25 @@
+# Secrets — never bake into image; pass via docker-compose env_file
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Dev/test artifacts
+*.log
+debug-*.log
+htmlcov/
+.coverage
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp

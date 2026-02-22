@@ -31,16 +31,25 @@ if ($backupChoice -eq "y") {
     }
 }
 
+# Locate git — D:\Git is the canonical install path on this machine (see docs/PROJECT-CONFIG.md)
+$gitCandidates = @("D:\Git\cmd\git.exe","D:\Git\bin\git.exe","C:\Program Files\Git\cmd\git.exe","C:\Program Files\Git\bin\git.exe")
+$git = $gitCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $git) { $git = (Get-Command git -ErrorAction SilentlyContinue)?.Source }
+
 # Получение последних изменений
 Write-Host "📥 Получение последних изменений из Git..." -ForegroundColor Cyan
 if (Test-Path ".git") {
-    try {
-        git pull origin main
-    } catch {
+    if (-not $git) {
+        Write-Host "⚠️  Git не найден (ожидается D:\Git\cmd\git.exe)" -ForegroundColor Yellow
+    } else {
         try {
-            git pull origin master
+            & $git pull origin main
         } catch {
-            Write-Host "⚠️  Не удалось обновить из Git" -ForegroundColor Yellow
+            try {
+                & $git pull origin master
+            } catch {
+                Write-Host "⚠️  Не удалось обновить из Git" -ForegroundColor Yellow
+            }
         }
     }
 } else {

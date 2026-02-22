@@ -37,6 +37,12 @@ const INITIAL_FORM_DATA: VehicleFormData = {
   gps_tracker_id: ''
 };
 
+const sendFleetDebugLog = (hypothesisId: string, message: string, data: Record<string, unknown>) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/36d7308b-c83b-4ca3-aaa5-521e1668a539',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa2d8a'},body:JSON.stringify({sessionId:'fa2d8a',runId:'gps-refresh-button',hypothesisId,location:'FleetPage.tsx:sendFleetDebugLog',message,data,timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+};
+
 export const FleetPage = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,6 +51,7 @@ export const FleetPage = () => {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [deletingVehicle, setDeletingVehicle] = useState<Vehicle | null>(null);
   const [refreshingLocationId, setRefreshingLocationId] = useState<number | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<VehicleFormData>(INITIAL_FORM_DATA);
@@ -101,12 +108,40 @@ export const FleetPage = () => {
   };
 
   const refreshVehicleLocation = async (vehicleId: number) => {
+    const vehicleBefore = vehicles.find(v => v.id === vehicleId);
+    // #region agent log
+    sendFleetDebugLog('H1', 'refresh click', {
+      vehicleId,
+      hasTracker: Boolean(vehicleBefore?.gps_tracker_id),
+      trackerId: vehicleBefore?.gps_tracker_id || null,
+      locationBefore: vehicleBefore?.current_location || null
+    });
+    // #endregion
     setRefreshingLocationId(vehicleId);
+    setLocationError(null);
     try {
       const { data } = await apiClient.post<Vehicle>(`/fleet/${vehicleId}/refresh-location`);
+      // #region agent log
+      sendFleetDebugLog('H2', 'refresh api success', {
+        vehicleId,
+        locationAfter: data?.current_location || null,
+        gpsLastUpdated: data?.gps_last_updated || null
+      });
+      // #endregion
       setVehicles(prev => prev.map(v => v.id === vehicleId ? data : v));
-    } catch (err) {
+      if (!data?.current_location) {
+        setLocationError(`GPS не вернул локацию для ТС #${vehicleId}. Проверьте GPS Tracker ID и подключение к GPS провайдеру.`);
+      }
+    } catch (err: any) {
       console.error('Failed to refresh location', err);
+      // #region agent log
+      sendFleetDebugLog('H3', 'refresh api error', {
+        vehicleId,
+        error: err instanceof Error ? err.message : String(err)
+      });
+      // #endregion
+      const detail = err?.response?.data?.detail;
+      setLocationError(detail ? String(detail) : 'Ошибка при обновлении GPS локации');
     } finally {
       setRefreshingLocationId(null);
     }
@@ -194,6 +229,14 @@ export const FleetPage = () => {
           </button>
         </div>
       ) : (
+        <>
+        {locationError && (
+          <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg flex items-start gap-2 text-sm text-amber-800 dark:text-amber-300">
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <span>{locationError}</span>
+            <button onClick={() => setLocationError(null)} className="ml-auto text-amber-500 hover:text-amber-700 shrink-0">✕</button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {vehicles.map(vehicle => (
             <div key={vehicle.id} className="card hover:shadow-md transition-shadow group relative">
@@ -254,10 +297,11 @@ export const FleetPage = () => {
                          type="button"
                          onClick={() => refreshVehicleLocation(vehicle.id)}
                          disabled={refreshingLocationId === vehicle.id}
-                         className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                         className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:bg-blue-900/30 rounded border border-gray-200 dark:border-gray-600"
                          title="Обновить локацию из GPS"
                        >
-                         <RefreshCw size={14} className={refreshingLocationId === vehicle.id ? 'animate-spin' : ''} />
+                         <RefreshCw size={14} className={refreshingLocationId === vehicle.id ? 'animate-spin shrink-0' : 'shrink-0'} />
+                         <span>Обновить</span>
                        </button>
                     </div>
                     {vehicle.current_location && (
@@ -282,6 +326,7 @@ export const FleetPage = () => {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {/* Edit/Create Modal */}

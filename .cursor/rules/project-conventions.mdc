@@ -10,5 +10,6 @@ When editing documentation, scripts, or any file that references the remote serv
 - **Application path on VPS:** always use `/opt/minitms` (not /root/MiniTMS, not /path/to/MiniTMS).
 - **Git remote (origin):** `https://github.com/Mumuaki/minitms_a.git`.
 - **Server:** 89.167.70.67, user root.
+- **Git on Windows (local machine):** installed at `D:\Git`. Always invoke as `D:\Git\cmd\git.exe` in PowerShell scripts — do NOT rely on git being in PATH.
 
 Single source of truth: `docs/PROJECT-CONFIG.md`. If you add or change paths or repo URLs anywhere in the project, use these values and keep PROJECT-CONFIG.md in sync.

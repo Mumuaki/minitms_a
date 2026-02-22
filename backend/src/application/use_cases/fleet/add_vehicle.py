@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy.orm import Session
 from backend.src.application.dto.vehicle_dto import VehicleCreate, VehicleResponse
 from backend.src.domain.entities.vehicle import Vehicle, VehicleStatus
@@ -14,14 +15,16 @@ class AddVehicleUseCase:
         self.gps_guard = GpsGuardAdapter()
         self.mock_gps = MockGpsService()
 
-    def _get_location(self, tracker_id: str):
-        # Prefer GPS Dozor (same source as /gps/vehicles) so fleet shows real location
-        loc, updated = self.dozor_gps.get_vehicle_location(tracker_id)
+    def _get_location(self, tracker_id: str, license_plate: Optional[str] = None):
+        # Prefer GPS Dozor; match by tracker_id (ODOKIRAGEN) or license_plate (BT152DH)
+        loc, updated = self.dozor_gps.get_vehicle_location(tracker_id, license_plate=license_plate)
         if loc:
             return loc, updated
         loc, updated = self.gps_guard.get_vehicle_location(tracker_id)
         if loc:
             return loc, updated
+        if self.dozor_gps.is_configured():
+            return None, None  # Dozor configured but no match — don't show fake Mock location
         return self.mock_gps.get_vehicle_location(tracker_id)
 
     def execute(self, vehicle_data: VehicleCreate) -> VehicleResponse:
@@ -38,7 +41,7 @@ class AddVehicleUseCase:
         
         # Fetch initial GPS data if tracker ID is provided
         if vehicle.gps_tracker_id:
-            loc, last_updated = self._get_location(vehicle.gps_tracker_id)
+            loc, last_updated = self._get_location(vehicle.gps_tracker_id, license_plate=vehicle.license_plate)
             vehicle.current_location = loc
             vehicle.gps_last_updated = last_updated
             
