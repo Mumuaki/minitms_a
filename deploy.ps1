@@ -111,7 +111,7 @@ switch ($mode) {
         Write-Host "   API Docs: http://localhost:8000/docs" -ForegroundColor White
     }
     "3" {
-        Write-Host "   Frontend: http://localhost:3000" -ForegroundColor White
+        Write-Host "   Frontend: http://localhost:80" -ForegroundColor White
         Write-Host "   Backend:  http://localhost:8000" -ForegroundColor White
         Write-Host "   API Docs: http://localhost:8000/docs" -ForegroundColor White
     }

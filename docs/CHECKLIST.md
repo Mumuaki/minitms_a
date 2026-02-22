@@ -30,7 +30,7 @@
 
 ```env
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/minitms_db
+DATABASE_URL=postgresql://admin:password@postgres:5432/minitms
 
 # Security
 SECRET_KEY=your-secret-key-here
@@ -38,7 +38,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=30
 
 # Redis
-REDIS_URL=redis://localhost:6379/0
+REDIS_URL=redis://redis:6379/0
 
 # Trans.eu Credentials
 TRANS_EU_LOGIN=your_login
@@ -49,10 +49,10 @@ OSM_TILE_SERVER=https://tile.openstreetmap.org/{z}/{x}/{y}.png
 OSRM_SERVER=http://router.project-osrm.org
 NOMINATIM_SERVER=https://nominatim.openstreetmap.org
 
-# GPS Integration
-GPS_PROVIDER=wialon  # wialon, gps-trace, navixy
-GPS_API_URL=https://hst-api.wialon.com
-GPS_API_TOKEN=your_gps_token
+# GPS Guard (a1.gpsguard.eu)
+GPS_DOZOR_URL=https://a1.gpsguard.eu/api/v1/vehicle/
+GPS_DOZOR_USERNAME=your_login@example.com
+GPS_DOZOR_PASSWORD=your_password
 
 # Google Services (только для Google Sheets)
 GOOGLE_CREDENTIALS_PATH=./credentials/google-service-account.json
@@ -186,7 +186,7 @@ docker-compose up --build
 - [ ] Swagger UI доступен на `http://localhost:8000/docs`
 
 ### 4.2 Frontend Health Check
-- [ ] Frontend доступен на `http://localhost:5173` (Vite dev server)
+- [ ] Frontend доступен на `http://localhost:5173` (Vite dev server) или `http://localhost` (Docker, порт 80)
 - [ ] Логин-страница загружается
 - [ ] Нет ошибок в консоли браузера
 
@@ -208,7 +208,7 @@ redis-cli ping  # Должен вернуть PONG
 ### 4.6 External Services Check
 - [ ] Trans.eu доступен и авторизация проходит
 - [ ] OpenStreetMap API отвечает (OSRM, Nominatim)
-- [ ] GPS-провайдер API доступен
+- [ ] GPS Guard API доступен (`GET https://a1.gpsguard.eu/api/v1/groups` с Basic Auth)
 - [ ] Google Sheets API авторизован (OAuth 2.0)
 - [ ] SMTP отправка работает (тестовое письмо)
 

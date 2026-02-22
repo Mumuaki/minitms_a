@@ -190,7 +190,7 @@ TRANS_EU_USERNAME=your-username
 TRANS_EU_PASSWORD=your-password
 HEADLESS_MODE=True
 
-GPS_DOZOR_URL=https://api.gpsguard.eu/api/v1/vehicle/
+GPS_DOZOR_URL=https://a1.gpsguard.eu/api/v1/vehicle/
 GPS_DOZOR_USERNAME=your-email
 GPS_DOZOR_PASSWORD=your-password
 
@@ -265,10 +265,10 @@ docker-compose logs -f frontend
 
 ```bash
 # Через Docker
-docker-compose exec postgres psql -U postgres -d mini-tms
+docker compose exec postgres psql -U admin -d minitms
 
-# Напрямую (если PostgreSQL на хосте)
-psql -h localhost -U postgres -d mini-tms
+# Напрямую
+psql -h localhost -U admin -d minitms
 ```
 
 ### Вход в контейнер

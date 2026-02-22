@@ -3,7 +3,7 @@
 
 $Base = "http://89.167.70.67"
 $Backend = "${Base}:8000"
-$Frontend = "${Base}:3000"
+$Frontend = $Base   # frontend runs on port 80
 $timeout = 10
 
 function Test-Url {
@@ -48,6 +48,7 @@ if ($b1 -and $b2 -and $f1) {
     Write-Host "  $Backend/docs" -ForegroundColor White
 } else {
     Write-Host "Итог: часть проверок не прошла. На сервере выполните:" -ForegroundColor Red
-    Write-Host "  bash scripts/vps-server-check-and-start.sh" -ForegroundColor White
+    Write-Host "  ssh root@89.167.70.67" -ForegroundColor White
+    Write-Host "  cd /opt/minitms && docker compose -f docker-compose.vps.yml up -d" -ForegroundColor White
 }
 Write-Host ""

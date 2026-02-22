@@ -33,10 +33,11 @@ if ($LASTEXITCODE -ne 0 -or $pullOut -match "would be overwritten by merge|Could
   Write-Host $pullOut
 }
 
-# 2. Restart services: try Docker first, then systemd
-Write-Host "`n2. Restarting backend (and frontend if Docker)..." -ForegroundColor Yellow
-$restartCmd = "cd $REMOTE_PROJECT && (test -f docker-compose.vps.yml && docker compose -f docker-compose.vps.yml restart backend frontend) || (test -f docker-compose.yml && docker compose restart backend frontend) || (systemctl restart minitms-backend minitms-frontend); echo Done"
-ssh "${USER}@${SERVER}" $restartCmd
+# 2. Rebuild and restart backend (code is baked into Docker image, must rebuild)
+Write-Host "`n2. Rebuilding and restarting backend..." -ForegroundColor Yellow
+$rebuildCmd = "cd $REMOTE_PROJECT && docker compose -f docker-compose.vps.yml build backend && docker compose -f docker-compose.vps.yml up -d backend; echo Done"
+ssh "${USER}@${SERVER}" $rebuildCmd
 
 Write-Host "`nSync with remote server done." -ForegroundColor Green
-Write-Host "Check app: http://${SERVER}:3000 and http://${SERVER}:8000/docs" -ForegroundColor Gray
+Write-Host "Frontend: http://${SERVER}  (port 80)" -ForegroundColor Gray
+Write-Host "API Docs: http://${SERVER}:8000/docs" -ForegroundColor Gray

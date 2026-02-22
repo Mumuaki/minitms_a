@@ -4,7 +4,7 @@
 $SERVER = "89.167.70.67"
 $USER = "root"
 $BACKEND_URL = "http://${SERVER}:8000"
-$FRONTEND_URL = "http://${SERVER}:3000"
+$FRONTEND_URL = "http://${SERVER}"  # frontend on port 80
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "MiniTMS Module Testing" -ForegroundColor Cyan
@@ -152,7 +152,7 @@ Write-Host "FRONTEND: React Application" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 Write-Host "`nChecking frontend availability..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "curl -s -o /dev/null -w 'HTTP Status: %{http_code}\n' http://localhost:3000 || curl -s -o /dev/null -w 'HTTP Status: %{http_code}\n' http://localhost:80"
+ssh ${USER}@${SERVER} "curl -s -o /dev/null -w 'HTTP Status: %{http_code}\n' http://localhost:80"
 
 # Check Environment Variables
 Write-Host "`n========================================" -ForegroundColor Cyan

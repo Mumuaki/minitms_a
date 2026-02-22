@@ -202,7 +202,7 @@
 ### URLs после запуска
 - Backend API: http://89.167.70.67:8000
 - API Docs: http://89.167.70.67:8000/docs
-- Frontend: http://89.167.70.67:3000
+- Frontend: http://89.167.70.67  (порт 80)
 
 ---
 

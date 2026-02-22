@@ -53,8 +53,8 @@ ssh ${USER}@${SERVER} "systemctl status minitms-frontend --no-pager 2>/dev/null 
 ssh ${USER}@${SERVER} "ps aux | grep -E '(node|npm)' | grep -v grep"
 
 # Check Frontend Port
-Write-Host "`n[8/10] Checking Frontend Port (3000 or 80)..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "netstat -tlnp | grep -E ':(3000|80|443)'; if [ `$? -ne 0 ]; then ss -tlnp | grep -E ':(3000|80|443)'; fi"
+Write-Host "`n[8/10] Checking Frontend Port (80)..." -ForegroundColor Yellow
+ssh ${USER}@${SERVER} "netstat -tlnp 2>/dev/null | grep -E ':(80|443)' || ss -tlnp | grep -E ':(80|443)'"
 
 # Check Nginx/Web Server
 Write-Host "`n[9/10] Checking Web Server (Nginx/Apache)..." -ForegroundColor Yellow

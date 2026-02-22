@@ -1,4 +1,4 @@
-﻿# MiniTMS Feature Testing Script
+# MiniTMS Feature Testing Script
 # Tests specific features according to the specification
 
 $SERVER = "89.167.70.67"
@@ -100,7 +100,7 @@ ssh ${USER}@${SERVER} "curl -s -I ${BACKEND_URL}/health | grep -E '(X-Frame-Opti
 # Test 17: CORS Configuration
 Write-Host "`n[TEST 17] CORS Configuration" -ForegroundColor Yellow
 Write-Host "Testing CORS headers..." -ForegroundColor Gray
-ssh ${USER}@${SERVER} "curl -s -I -H 'Origin: http://localhost:3000' ${BACKEND_URL}/health | grep -i 'access-control'"
+ssh ${USER}@${SERVER} "curl -s -I -H 'Origin: http://localhost:80' ${BACKEND_URL}/health | grep -i 'access-control'"
 
 # Test 18: WebSocket Support (if applicable)
 Write-Host "`n[TEST 18] WebSocket Support" -ForegroundColor Yellow

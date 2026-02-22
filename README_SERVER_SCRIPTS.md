@@ -480,7 +480,7 @@ cat /opt/minitms/backend/.env | grep GPS_DOZOR
 
 - **Backend API:** http://89.167.70.67:8000
 - **API Documentation:** http://89.167.70.67:8000/docs
-- **Frontend:** http://89.167.70.67:3000 (или :80)
+- **Frontend:** http://89.167.70.67 (или :80)
 
 ---
 
