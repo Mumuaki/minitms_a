@@ -13,21 +13,26 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Создание рабочей директории
-WORKDIR /app
+# Структура внутри контейнера:
+#   /workspace/backend/   ← исходники (main.py, src/, requirements.txt)
+#   PYTHONPATH=/workspace → import backend.src.* работает корректно
+WORKDIR /workspace
 
-# Копирование файла зависимостей
-COPY requirements.txt .
+# Сначала устанавливаем зависимости (кэш слоя не инвалидируется при смене кода)
+COPY requirements.txt ./backend/
+RUN pip install --no-cache-dir -r ./backend/requirements.txt
 
-# Установка Python зависимостей
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Копирование всего backend кода
-COPY . .
+# Копируем весь backend-код в /workspace/backend/
+COPY . ./backend/
 
 # Создание пользователя без root прав
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /workspace
 USER appuser
+
+# PYTHONPATH=/workspace позволяет находить пакет "backend" как /workspace/backend/
+ENV PYTHONPATH=/workspace
+
+WORKDIR /workspace/backend
 
 # Expose порт
 EXPOSE 8000
