@@ -1,6 +1,11 @@
-# Docker Compose для VPS с уже установленными PostgreSQL и Redis
-# Используйте этот файл, если PostgreSQL и Redis уже работают на VPS отдельно
+# Docker Compose для VPS (PostgreSQL и Redis запущены в этом же проекте или как orphan-контейнеры)
 version: '3.8'
+
+networks:
+  # Подключаемся к существующей Docker-сети проекта
+  minitms-network:
+    external: true
+    name: minitms_minitms-network
 
 services:
   # Backend API (FastAPI)
@@ -14,8 +19,8 @@ services:
       - ./backend/.env
     ports:
       - "8000:8000"
-    # Используем host network для доступа к локальному PostgreSQL и Redis
-    network_mode: "host"
+    networks:
+      - minitms-network
     command: uvicorn main:app --host 0.0.0.0 --port 8000
     logging:
       driver: "json-file"
@@ -23,7 +28,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Frontend (React + Vite)
+  # Frontend (React + Vite, nginx proxy → backend:8000)
   frontend:
     build:
       context: ./frontend
@@ -31,7 +36,9 @@ services:
     container_name: minitms-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "80:80"
+    networks:
+      - minitms-network
     depends_on:
       - backend
     logging:
