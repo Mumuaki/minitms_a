@@ -5,37 +5,51 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DISPLAY=:99
 
-# Установка системных зависимостей
+# Установка системных зависимостей + виртуальный дисплей + VNC для видимого браузера
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     gcc \
+    xvfb \
+    x11vnc \
+    xauth \
+    && pip install websockify \
     && rm -rf /var/lib/apt/lists/*
 
-# Структура внутри контейнера:
-#   /workspace/backend/   ← исходники (main.py, src/, requirements.txt)
-#   PYTHONPATH=/workspace → import backend.src.* работает корректно
+# noVNC — веб-клиент для просмотра браузера из обычного браузера
+RUN mkdir -p /opt/novnc \
+    && python3 -c "import urllib.request; urllib.request.urlretrieve('https://github.com/novnc/noVNC/archive/refs/tags/v1.5.0.tar.gz', '/tmp/novnc.tar.gz')" \
+    && tar -xzf /tmp/novnc.tar.gz -C /opt/novnc --strip-components=1 \
+    && rm /tmp/novnc.tar.gz \
+    && ln -s /opt/novnc/vnc.html /opt/novnc/index.html
+
 WORKDIR /workspace
 
-# Сначала устанавливаем зависимости (кэш слоя не инвалидируется при смене кода)
 COPY requirements.txt ./backend/
 RUN pip install --no-cache-dir -r ./backend/requirements.txt
 
-# Копируем весь backend-код в /workspace/backend/
+# Playwright: OS-level dependencies
+RUN playwright install-deps chromium
+
 COPY . ./backend/
 
-# Создание пользователя без root прав
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /workspace
+RUN useradd -m -u 1000 appuser \
+    && mkdir -p /workspace/browser_profile \
+    && chown -R appuser:appuser /workspace /opt/novnc
+
 USER appuser
 
-# PYTHONPATH=/workspace позволяет находить пакет "backend" как /workspace/backend/
-ENV PYTHONPATH=/workspace
+# Playwright: browser binaries as appuser
+RUN playwright install chromium
 
+ENV PYTHONPATH=/workspace
 WORKDIR /workspace/backend
 
-# Expose порт
-EXPOSE 8000
+COPY --chown=appuser:appuser entrypoint.sh /workspace/backend/entrypoint.sh
+RUN sed -i 's/\r$//' /workspace/backend/entrypoint.sh && chmod +x /workspace/backend/entrypoint.sh
 
-# Команда запуска (можно переопределить в docker-compose.yml)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000 6080
+
+ENTRYPOINT ["/workspace/backend/entrypoint.sh"]
