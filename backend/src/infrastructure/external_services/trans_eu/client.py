@@ -1,9 +1,21 @@
 from playwright.async_api import async_playwright, BrowserContext, Page, Playwright
 import logging
 import os
+import json
+import time
 from backend.src.infrastructure.config.settings import settings
 
 logger = logging.getLogger(__name__)
+
+# #region agent log
+_DBG_LOG = "/tmp/debug-73ed43.log"
+def _dbg(msg, data=None, hyp=""):
+    try:
+        entry = {"sessionId":"73ed43","timestamp":int(time.time()*1000),"location":"client.py","message":msg,"hypothesisId":hyp}
+        if data is not None: entry["data"] = data
+        with open(_DBG_LOG, "a") as f: f.write(json.dumps(entry)+"\n")
+    except: pass
+# #endregion
 
 class TransEuClient:
     """
@@ -15,7 +27,8 @@ class TransEuClient:
         self.playwright: Playwright = None
         self.context: BrowserContext = None
         self.page: Page = None
-        self.headless = settings.HEADLESS_MODE
+        # ALWAYS run visible so user can watch via noVNC (http://server:6080)
+        self.headless = False
         self.user_data_dir = settings.BROWSER_PROFILE_DIR
 
     async def start(self):
@@ -23,30 +36,32 @@ class TransEuClient:
         Initialize Playwright with Persistent Context.
         This keeps cookies/storage in 'browser_profile' folder.
         """
-        logger.info(f"Starting TransEuClient (Persistent Logic)... Profile: {self.user_data_dir}")
+        # Ensure DISPLAY is set for Xvfb virtual display
+        if not os.environ.get("DISPLAY"):
+            os.environ["DISPLAY"] = ":99"
+
+        logger.info(f"Starting TransEuClient: headless={self.headless}, DISPLAY={os.environ.get('DISPLAY')}, profile={self.user_data_dir}")
         
-        # Ensure profile dir exists
         if not os.path.exists(self.user_data_dir):
             os.makedirs(self.user_data_dir, exist_ok=True)
 
         self.playwright = await async_playwright().start()
         
-        # Launch Persistent Context directly
-        # Note: 'channel="chrome"' allows using installed Chrome for better evasion, 
-        # or remove it to use bundled Chromium.
         self.context = await self.playwright.chromium.launch_persistent_context(
             user_data_dir=self.user_data_dir,
             headless=self.headless,
-            slow_mo=200, # Reduced slow_mo for better feel
-            viewport=None, # Required for --start-maximized to take full effect
-            args=["--start-maximized", "--disable-blink-features=AutomationControlled"]
+            slow_mo=200,
+            viewport=None,
+            args=["--start-maximized", "--disable-blink-features=AutomationControlled", "--no-sandbox"]
         )
         
-        # Get the first page (persistent context opens one by default)
         if self.context.pages:
             self.page = self.context.pages[0]
         else:
             self.page = await self.context.new_page()
+        # #region agent log
+        _dbg("start() browser launched OK", {"pages_count": len(self.context.pages)}, "H-B")
+        # #endregion
 
     async def stop(self):
         """
@@ -70,37 +85,76 @@ class TransEuClient:
         Perform login to Trans.eu using persistent session.
         Checks if already logged in (via cookies), skips login form if so.
         """
+        # #region agent log
+        _dbg("login() called", {"username": settings.TRANS_EU_USERNAME[:3]+"***" if settings.TRANS_EU_USERNAME else "(empty)", "has_password": bool(settings.TRANS_EU_PASSWORD)}, "H-E")
+        # #endregion
         if not settings.TRANS_EU_USERNAME or not settings.TRANS_EU_PASSWORD:
             logger.error("Trans.eu credentials are missing settings.")
+            # #region agent log
+            _dbg("login() ABORT: credentials missing", {}, "H-E")
+            # #endregion
             return False
 
         try:
             target_url = "https://platform.trans.eu/exchange/offers"
             
-            # Check if we are already on the page (from previous session attach)
             if self.page.url == target_url:
                 logger.info("Already on target URL.")
                 return True
 
             logger.info("Navigating to Trans.eu...")
-            await self.page.goto(target_url)  
+            # #region agent log
+            _dbg("login() navigating to target", {"target_url": target_url, "current_url": self.page.url}, "H-C")
+            # #endregion
+            await self.page.goto(target_url, timeout=60000)  
             
-            # Wait for potential redirect or load
             await self.page.wait_for_timeout(3000)
+            # #region agent log
+            _dbg("login() after goto + wait", {"current_url": self.page.url, "title": await self.page.title()}, "H-C")
+            # #endregion
 
-            # Check logic
             if "id.trans.eu" in self.page.url or "auth.platform.trans.eu" in self.page.url:
                 logger.info("Session expired or new login needed. Redirected to Auth.")
+                # #region agent log
+                _dbg("login() auth redirect detected, looking for form", {"url": self.page.url}, "H-C,H-D")
+                # #endregion
                 
-                # --- Login Form Logic ---
-                await self.page.wait_for_selector('input[type="text"], input[type="email"]', timeout=10000)
+                await self.page.wait_for_selector('input[type="text"], input[type="email"]', timeout=15000)
+                # #region agent log
+                _dbg("login() form found, filling credentials", {}, "H-D")
+                # #endregion
                 await self.page.fill('input[type="text"], input[type="email"]', settings.TRANS_EU_USERNAME)
                 await self.page.fill('input[type="password"]', settings.TRANS_EU_PASSWORD)
+                
+                await self.page.screenshot(path="/tmp/debug_before_submit.png")
                 await self.page.click('button[type="submit"]')
                 
                 logger.info("Credentials submitted.")
-                await self.page.wait_for_url("**/exchange/offers", timeout=60000) # Increased timeout for login
+                # #region agent log
+                _dbg("login() credentials submitted, waiting for redirect or auth code step", {}, "H-D")
+                # #endregion
+                await self.page.wait_for_timeout(4000)
+
+                # Authorization/verification code step (e.g. 2FA or portal code)
+                auth_code = (settings.TRANS_EU_AUTH_CODE or "").strip()
+                if auth_code:
+                    code_input = self.page.locator('input[inputmode="numeric"], input[name*="code"], input[name*="otp"], input[placeholder*="code"], input[placeholder*="verification"]').first
+                    try:
+                        if await code_input.is_visible(timeout=5000):
+                            logger.info("Authorization code step detected, entering code.")
+                            await code_input.fill(auth_code)
+                            submit_btn = self.page.locator('button[type="submit"]').first
+                            if await submit_btn.is_visible(timeout=2000):
+                                await submit_btn.click()
+                            await self.page.wait_for_timeout(2000)
+                    except Exception:
+                        pass
+
+                await self.page.wait_for_url("**/exchange/offers", timeout=60000)
                 logger.info("Login successful (New Session). Waiting for app load...")
+                # #region agent log
+                _dbg("login() redirect OK", {"url": self.page.url}, "H-D")
+                # #endregion
                 try:
                     await self.page.wait_for_selector('div[data-ctx="basic-filters"]', state='attached', timeout=30000)
                     logger.info("App shell loaded (filters detected).")
@@ -110,28 +164,32 @@ class TransEuClient:
                 return True
                 
             elif "/exchange/offers" in self.page.url:
-                # Need to verify we are not on a public landing page looking similar
-                # Check for "Offers" specific element inside app
                 try:
-                    # Check for "Search" button or dashboard element
-                    # Selector for Search button (from previous step analysis)
                     await self.page.wait_for_selector('button[data-ctx="basicFilters.form.submit"]', timeout=10000)
                     logger.info("Already logged in (Cookies Valid).")
+                    # #region agent log
+                    _dbg("login() already logged in (cookies valid)", {"url": self.page.url}, "H-C")
+                    # #endregion
                     return True
                 except:
                     logger.warning("On offers URL but Dashboard not ready? Checking login form...")
-                    # Fallback check
                     if await self.page.query_selector('input[type="password"]'):
                         logger.info("Login form detected on Offers URL.")
-                        # Perform login... (Code duplication, simpler to recurse or fall through)
-                        # For now, simplistic fall through if struct is same
                         pass 
             
+            # #region agent log
+            _dbg("login() returning True (fallthrough)", {"url": self.page.url}, "H-C")
+            # #endregion
             return True
 
         except Exception as e:
             logger.error(f"Login/Navigation failed: {str(e)}")
-            await self.page.screenshot(path="login_failed.png")
+            # #region agent log
+            _dbg("login() EXCEPTION", {"error": str(e), "url": self.page.url if self.page else "no-page"}, "H-C,H-D")
+            # #endregion
+            try:
+                await self.page.screenshot(path="/tmp/debug_login_failed.png")
+            except: pass
             return False
 
     async def search_offers(
