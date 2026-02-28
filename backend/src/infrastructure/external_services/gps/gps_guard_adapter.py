@@ -51,10 +51,22 @@ class GpsGuardAdapter(GpsService):
                 else:
                     last_updated = datetime.now(timezone.utc)
 
-                location_str = address
+                # Try to parse address if provided, otherwise fallback
+                location_str = None
+                if address and isinstance(address, dict):
+                    iso = address.get("country_code", "").upper()
+                    postcode = address.get("postcode", "")
+                    city = address.get("city") or address.get("town") or ""
+                    parts = [p for p in [iso, postcode, city] if p]
+                    if parts:
+                        location_str = ", ".join(parts)
+                elif isinstance(address, str):
+                    location_str = address
+
                 if not location_str and lat and lon:
+                    # If we only have lat/lon, we might want to do reverse geocoding here 
+                    # but for this adapter we just return lat, lon as fallback
                     location_str = f"{lat}, {lon}"
-                
                 return location_str, last_updated
             else:
                 print(f"GPS Guard API Error: {response.status_code} - {response.text}")

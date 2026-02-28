@@ -5,11 +5,11 @@ from backend.src.domain.services.gps_service import GpsService
 
 class MockGpsService(GpsService):
     def get_vehicle_location(self, tracker_id: str) -> Tuple[Optional[str], Optional[datetime]]:
-        # Simulate API call with predefined cities
+        # Simulate API call with predefined cities in format "ISO-2, postal code, city"
         cities = [
-            "Berlin, DE", "Paris, FR", "Warsaw, PL", "Prague, CZ", 
-            "Bratislava, SK", "Vienna, AT", "Budapest, HU", "Dortmund, DE",
-            "Munich, DE", "Milan, IT", "Barcelona, ES", "Lyon, FR"
+            "DE, 10115, Berlin", "FR, 75001, Paris", "PL, 00-001, Warsaw", "CZ, 110 00, Prague", 
+            "SK, 811 01, Bratislava", "AT, 1010, Vienna", "HU, 1014, Budapest", "DE, 44137, Dortmund",
+            "DE, 80331, Munich", "IT, 20121, Milan", "ES, 08001, Barcelona", "FR, 69001, Lyon"
         ]
         
         # Deterministic selection based on tracker_id characters

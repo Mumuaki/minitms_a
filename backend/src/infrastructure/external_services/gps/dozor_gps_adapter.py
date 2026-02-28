@@ -42,16 +42,31 @@ def _creds() -> Tuple[str, str]:
 
 
 def _reverse_geocode(lat: str, lon: str) -> Optional[str]:
-    """Free Nominatim reverse geocoding. Returns human-readable address or None."""
+    """Free Nominatim reverse geocoding. Returns formatted address: ISO-2, postal code, name of location."""
     try:
         resp = requests.get(
             "https://nominatim.openstreetmap.org/reverse",
-            params={"lat": lat, "lon": lon, "format": "json", "addressdetails": "0"},
+            params={"lat": lat, "lon": lon, "format": "json", "addressdetails": "1"},
             headers={"User-Agent": _NOMINATIM_UA},
             timeout=5,
         )
         if resp.status_code == 200:
             data = resp.json()
+            address = data.get("address", {})
+            iso = address.get("country_code", "").upper()
+            postcode = address.get("postcode", "")
+            
+            city = (address.get("city") or 
+                    address.get("town") or 
+                    address.get("village") or 
+                    address.get("municipality") or 
+                    address.get("county") or 
+                    "")
+            
+            parts = [p for p in [iso, postcode, city] if p]
+            if parts:
+                return ", ".join(parts)
+                
             return data.get("display_name") or None
     except Exception as e:
         logger.debug("Nominatim reverse geocode failed: %s", e)
