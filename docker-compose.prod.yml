@@ -90,6 +90,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
+    volumes:
+      - ./alembic.ini:/workspace/alembic.ini:ro
     entrypoint: [ "/bin/bash", "entrypoint_core.sh" ]
     depends_on:
       postgres:
