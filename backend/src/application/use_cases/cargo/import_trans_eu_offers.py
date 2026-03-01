@@ -41,7 +41,7 @@ class ImportTransEuOffersUseCase:
         """
         Executes the scraping process and saves results to DB.
         """
-        client = TransEuClient()
+        client = await TransEuClient.get_instance()
         try:
             # 1. Start & Login
             await client.start()

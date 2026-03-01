@@ -66,6 +66,8 @@ dist-ssr/
 .env.local
 .env.*.local
 .env.production.local
+.env.remote
+.env.production
 
 # Docker
 docker-compose.override.yml

@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     x11vnc \
     xauth \
     procps \
+    wget \
     && pip install websockify \
     && rm -rf /var/lib/apt/lists/*
 
