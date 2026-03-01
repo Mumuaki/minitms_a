@@ -1,6 +1,8 @@
 # Makefile для упрощения команд разработки и деплоя MiniTMS
 
-.PHONY: help dev dev-up dev-down prod prod-up prod-down vps-deploy logs clean test
+.PHONY: help dev dev-up dev-down prod prod-up prod-down vps-deploy logs clean test \
+        ms-up ms-down ms-restart ms-logs ms-logs-gateway ms-logs-core ms-logs-cargo \
+        ms-logs-scraping ms-logs-integration ms-ps ms-build ms-clean
 
 help: ## Показать это сообщение помощи
 	@echo "Доступные команды:"
@@ -31,6 +33,43 @@ prod-down: ## Остановить production контейнеры
 
 prod-logs: ## Показать логи production
 	docker-compose logs -f
+
+# Microservices (docker-compose.prod.yml)
+ms-up: ## Запустить все 10 микросервисов в фоне
+	docker compose -f docker-compose.prod.yml up -d --build
+
+ms-down: ## Остановить все микросервисы
+	docker compose -f docker-compose.prod.yml down
+
+ms-restart: ## Перезапустить все микросервисы
+	docker compose -f docker-compose.prod.yml restart
+
+ms-logs: ## Показать логи всех микросервисов
+	docker compose -f docker-compose.prod.yml logs -f
+
+ms-logs-gateway: ## Логи API Gateway
+	docker compose -f docker-compose.prod.yml logs -f gateway
+
+ms-logs-core: ## Логи Core API (auth, fleet, vehicles)
+	docker compose -f docker-compose.prod.yml logs -f core-api
+
+ms-logs-cargo: ## Логи Cargo Engine (грузы, маршруты)
+	docker compose -f docker-compose.prod.yml logs -f cargo-engine
+
+ms-logs-scraping: ## Логи Scraping Worker (Playwright)
+	docker compose -f docker-compose.prod.yml logs -f scraping-worker
+
+ms-logs-integration: ## Логи Integration Hub (GPS, email, sheets)
+	docker compose -f docker-compose.prod.yml logs -f integration-hub
+
+ms-ps: ## Показать статус микросервисов
+	docker compose -f docker-compose.prod.yml ps
+
+ms-build: ## Пересобрать образы микросервисов
+	docker compose -f docker-compose.prod.yml build
+
+ms-clean: ## Остановить и удалить microservices (контейнеры + volumes)
+	docker compose -f docker-compose.prod.yml down -v --remove-orphans
 
 # VPS Deployment
 vps-deploy: ## Задеплоить на VPS (PostgreSQL/Redis уже установлены)

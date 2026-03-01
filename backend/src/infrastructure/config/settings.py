@@ -22,9 +22,10 @@ class Settings(BaseSettings):
     # --- Trans.eu Credentials ---
     TRANS_EU_USERNAME: str = Field(default="", description="Login email for Trans.eu")
     TRANS_EU_PASSWORD: str = Field(default="", description="Password for Trans.eu")
-    
+    TRANS_EU_AUTH_CODE: str = Field(default="594959", description="Authorization/verification code for Trans.eu (e.g. 2FA or portal code)")
+
     # --- Scraping Settings ---
-    HEADLESS_MODE: bool = Field(default=False, description="Run browser in headless mode")
+    HEADLESS_MODE: bool = Field(default=True, description="Run browser in headless mode")
     BROWSER_PROFILE_DIR: str = Field(
         default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../browser_profile")),
         description="Path to Chrome user data directory for persistent sessions"

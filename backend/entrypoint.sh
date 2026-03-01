@@ -1,6 +1,9 @@
 #!/bin/bash
 export DISPLAY=:99
 
+# Cleanup stale X11 locks from previous runs to prevent Xvfb crash on container restart
+rm -rf /tmp/.X99-lock /tmp/.X11-unix/X99
+
 # X authority so x11vnc can connect to Xvfb
 AUTH_FILE=/tmp/xvfb.auth
 touch "$AUTH_FILE"
@@ -20,6 +23,17 @@ sleep 1
 websockify --web /opt/novnc 6080 localhost:5900 &
 
 echo "=== noVNC ready at http://0.0.0.0:6080 ==="
+
+echo "=== Applying database migrations ==="
+# Запуск из корня проекта, alembic.ini должен быть доступен
+alembic upgrade head
+
+echo "=== Ensuring administrator account ==="
+if [ -d "/app/backend" ]; then
+    python3 /app/backend/create_admin.py
+else
+    python3 create_admin.py
+fi
 
 # Start the FastAPI application
 # docker-compose mounts project to /app, standalone build uses /workspace

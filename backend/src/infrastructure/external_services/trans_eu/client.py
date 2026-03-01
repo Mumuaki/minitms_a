@@ -1,3 +1,4 @@
+import asyncio
 from playwright.async_api import async_playwright, BrowserContext, Page, Playwright
 import logging
 import os
@@ -6,6 +7,10 @@ import time
 from backend.src.infrastructure.config.settings import settings
 
 logger = logging.getLogger(__name__)
+
+# Глобальный экземпляр для Singleton (на уровне модуля)
+_trans_eu_client_instance = None
+_trans_eu_client_lock = None
 
 # #region agent log
 _DBG_LOG = "/tmp/debug-73ed43.log"
@@ -21,7 +26,20 @@ class TransEuClient:
     """
     Client for interacting with Trans.eu platform via Browser Automation.
     Uses Persistent Context to maintain session and avoid multiple logins.
+    Implemented as a Singleton to prevent multiple browser instances using the same profile.
     """
+
+    @classmethod
+    async def get_instance(cls):
+        """Returns the shared instance of TransEuClient."""
+        global _trans_eu_client_instance, _trans_eu_client_lock
+        if _trans_eu_client_lock is None:
+            _trans_eu_client_lock = asyncio.Lock()
+            
+        async with _trans_eu_client_lock:
+            if _trans_eu_client_instance is None:
+                _trans_eu_client_instance = cls()
+            return _trans_eu_client_instance
 
     def __init__(self):
         self.playwright: Playwright = None
@@ -36,24 +54,72 @@ class TransEuClient:
         Initialize Playwright with Persistent Context.
         This keeps cookies/storage in 'browser_profile' folder.
         """
-        # Ensure DISPLAY is set for Xvfb virtual display
-        if not os.environ.get("DISPLAY"):
-            os.environ["DISPLAY"] = ":99"
+        global _trans_eu_client_lock
+        if _trans_eu_client_lock is None:
+            _trans_eu_client_lock = asyncio.Lock()
+            
+        async with _trans_eu_client_lock:
+            # If already started and context is valid, do nothing
+            if self.context:
+                try:
+                    # Check if context is still alive
+                    if len(self.context.pages) >= 0:
+                        logger.info("TransEuClient already started and active.")
+                        return
+                except Exception:
+                    logger.warning("Existing browser context appears dead. Restarting...")
+                    self.context = None
 
-        logger.info(f"Starting TransEuClient: headless={self.headless}, DISPLAY={os.environ.get('DISPLAY')}, profile={self.user_data_dir}")
-        
-        if not os.path.exists(self.user_data_dir):
-            os.makedirs(self.user_data_dir, exist_ok=True)
+            # Ensure DISPLAY is set for Xvfb virtual display
+            if not os.environ.get("DISPLAY"):
+                os.environ["DISPLAY"] = ":99"
 
-        self.playwright = await async_playwright().start()
-        
-        self.context = await self.playwright.chromium.launch_persistent_context(
-            user_data_dir=self.user_data_dir,
-            headless=self.headless,
-            slow_mo=200,
-            viewport=None,
-            args=["--start-maximized", "--disable-blink-features=AutomationControlled", "--no-sandbox"]
-        )
+            logger.info(f"Starting TransEuClient: headless={self.headless}, DISPLAY={os.environ.get('DISPLAY')}, profile={self.user_data_dir}")
+            
+            if not os.path.exists(self.user_data_dir):
+                os.makedirs(self.user_data_dir, exist_ok=True)
+
+            # --- Cleanup stale SingletonLock (protection against crashed browser) ---
+            import subprocess
+            from pathlib import Path
+            
+            # Kill any zombie chrome processes first
+            try:
+                # Use -9 for guaranteed termination in Docker
+                subprocess.run(["pkill", "-9", "-f", "chrome"], timeout=5, capture_output=True)
+                logger.info("Killed stale chrome processes with SIGKILL.")
+            except Exception as kill_err:
+                logger.warning(f"Could not kill chrome processes: {kill_err}")
+
+            # Remove the lock files (including symlinks)
+            locks_cleaned = False
+            for file_name in ["SingletonLock", "SingletonCookie", "SingletonSocket"]:
+                file_path = Path(self.user_data_dir) / file_name
+                if file_path.exists() or file_path.is_symlink():
+                    logger.warning(f"Found stale {file_name} at {file_path}. Cleaning up...")
+                    try:
+                        # lexists + unlink handles broken symlinks correctly
+                        file_path.unlink(missing_ok=True)
+                        logger.info(f"{file_name} removed successfully.")
+                        locks_cleaned = True
+                    except OSError as rm_err:
+                        logger.error(f"Failed to remove {file_name}: {rm_err}")
+            
+            if locks_cleaned:
+                # Crucial for Docker/Slow FS: give OS time to sync before Chrome starts
+                logger.info("Lock files were cleaned. Waiting 1s for FS sync...")
+                time.sleep(1)
+
+            if not self.playwright:
+                self.playwright = await async_playwright().start()
+            
+            self.context = await self.playwright.chromium.launch_persistent_context(
+                user_data_dir=self.user_data_dir,
+                headless=self.headless,
+                slow_mo=200,
+                viewport=None,
+                args=["--start-maximized", "--disable-blink-features=AutomationControlled", "--no-sandbox"]
+            )
         
         if self.context.pages:
             self.page = self.context.pages[0]

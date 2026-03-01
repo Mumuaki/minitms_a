@@ -1,0 +1,38 @@
+# Dockerfile.service — лёгкий образ для микросервисов (без Playwright, Xvfb, noVNC)
+# Используется: core-api, cargo-engine, integration-hub, celery-worker, celery-beat
+FROM python:3.11-slim
+
+# Переменные окружения для Python
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Минимальные системные зависимости:
+# - postgresql-client: для проверки готовности БД в entrypoint
+# - gcc: для компиляции некоторых Python-пакетов (например, psycopg2)
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Копируем зависимости отдельно — так Docker кэширует слой,
+# если код изменился, но requirements.txt — нет
+COPY requirements.txt ./backend/
+RUN pip install --no-cache-dir -r ./backend/requirements.txt
+
+# Копируем весь backend (src/, main*.py, entrypoint*.sh)
+COPY . ./backend/
+
+# Создаём непривилегированного пользователя
+RUN useradd -m -u 1000 appuser \
+    && chown -R appuser:appuser /workspace
+
+USER appuser
+
+ENV PYTHONPATH=/workspace
+WORKDIR /workspace/backend
+
+EXPOSE 8001
