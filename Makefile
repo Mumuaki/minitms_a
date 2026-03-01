@@ -1,7 +1,7 @@
 # Makefile для упрощения команд разработки и деплоя MiniTMS
 
 .PHONY: help dev dev-up dev-down prod prod-up prod-down vps-deploy logs clean test \
-        ms-up ms-down ms-restart ms-logs ms-logs-gateway ms-logs-core ms-logs-cargo \
+        microservice-up microservice-down ms-restart microservice-logs ms-logs-gateway ms-logs-core ms-logs-cargo \
         ms-logs-scraping ms-logs-integration ms-ps ms-build ms-clean
 
 help: ## Показать это сообщение помощи
@@ -35,16 +35,16 @@ prod-logs: ## Показать логи production
 	docker-compose logs -f
 
 # Microservices (docker-compose.prod.yml)
-ms-up: ## Запустить все 10 микросервисов в фоне
+microservice-up: ## Запустить все 10 микросервисов в фоне
 	docker compose -f docker-compose.prod.yml up -d --build
 
-ms-down: ## Остановить все микросервисы
+microservice-down: ## Остановить все микросервисы
 	docker compose -f docker-compose.prod.yml down
 
 ms-restart: ## Перезапустить все микросервисы
 	docker compose -f docker-compose.prod.yml restart
 
-ms-logs: ## Показать логи всех микросервисов
+microservice-logs: ## Показать логи всех микросервисов
 	docker compose -f docker-compose.prod.yml logs -f
 
 ms-logs-gateway: ## Логи API Gateway
@@ -107,9 +107,6 @@ db-backup: ## Создать бэкап БД
 logs: ## Показать все логи
 	docker-compose logs -f
 
-logs-backend: ## Показать логи backend
-	docker-compose logs -f backend
-
 logs-frontend: ## Показать логи frontend
 	docker-compose logs -f frontend
 
@@ -117,9 +114,6 @@ logs-postgres: ## Показать логи PostgreSQL
 	docker-compose logs -f postgres
 
 # Shell access
-shell-backend: ## Войти в backend container shell
-	docker-compose exec backend bash
-
 shell-frontend: ## Войти в frontend container shell
 	docker-compose exec frontend sh
 
@@ -127,9 +121,6 @@ shell-postgres: ## Войти в PostgreSQL container shell
 	docker-compose exec postgres bash
 
 # Testing
-test-backend: ## Запустить backend тесты
-	docker-compose exec backend pytest
-
 test-frontend: ## Запустить frontend тесты
 	cd frontend && npm run test
 
@@ -144,18 +135,12 @@ clean-volumes: ## Удалить только volumes
 restart: ## Перезапустить все сервисы
 	docker-compose restart
 
-restart-backend: ## Перезапустить только backend
-	docker-compose restart backend
-
 restart-frontend: ## Перезапустить только frontend
 	docker-compose restart frontend
 
 # Build
 build: ## Пересобрать все образы
 	docker-compose build
-
-build-backend: ## Пересобрать только backend
-	docker-compose build backend
 
 build-frontend: ## Пересобрать только frontend
 	docker-compose build frontend
