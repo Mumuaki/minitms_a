@@ -70,8 +70,8 @@ class TransEuClient:
                     logger.warning("Existing browser context appears dead. Restarting...")
                     self.context = None
 
-            # Ensure DISPLAY is set for Xvfb virtual display
-            if not os.environ.get("DISPLAY"):
+            # Ensure DISPLAY is set for Xvfb virtual display (Linux only)
+            if os.name != 'nt' and not os.environ.get("DISPLAY"):
                 os.environ["DISPLAY"] = ":99"
 
             logger.info(f"Starting TransEuClient: headless={self.headless}, DISPLAY={os.environ.get('DISPLAY')}, profile={self.user_data_dir}")
@@ -113,13 +113,62 @@ class TransEuClient:
             if not self.playwright:
                 self.playwright = await async_playwright().start()
             
-            self.context = await self.playwright.chromium.launch_persistent_context(
-                user_data_dir=self.user_data_dir,
-                headless=self.headless,
-                slow_mo=200,
-                viewport=None,
-                args=["--start-maximized", "--disable-blink-features=AutomationControlled", "--no-sandbox"]
-            )
+            # --- Dynamic Chrome Executable Discovery ---
+            pw_path = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "/ms-playwright")
+            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = pw_path
+            chrome_exe = None
+            if os.name != 'nt' and os.path.exists(pw_path):
+                import glob
+                matches = glob.glob(f"{pw_path}/chromium-*/chrome-linux64/chrome")
+                if matches:
+                    chrome_exe = matches[0]
+                    logger.info(f"Dynamically found Chrome executable at: {chrome_exe}")
+            
+            launch_args = {
+                "user_data_dir": self.user_data_dir,
+                "headless": self.headless,
+                "slow_mo": 200,
+                "viewport": None,
+                "args": ["--start-maximized", "--disable-blink-features=AutomationControlled", "--no-sandbox"]
+            }
+            if chrome_exe:
+                launch_args["executable_path"] = chrome_exe
+            
+            self.context = await self.playwright.chromium.launch_persistent_context(**launch_args)
+            
+            # Внедряем stealth-скрипт для маскировки под человека и обхода Cloudflare Turnstile
+            await self.context.add_init_script("""
+                // Маскировка navigator.webdriver
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+
+                // Маскировка window.chrome
+                window.chrome = {
+                    runtime: {},
+                    loadTimes: function() {},
+                    csi: function() {},
+                    app: {}
+                };
+
+                // Маскировка navigator.permissions.query
+                const originalQuery = window.navigator.permissions.query;
+                window.navigator.permissions.query = (parameters) => (
+                    parameters.name === 'notifications' ?
+                        Promise.resolve({ state: Notification.permission }) :
+                        originalQuery(parameters)
+                );
+
+                // Маскировка плагинов (navigator.plugins)
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5]
+                });
+
+                // Маскировка языков
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['ru-RU', 'ru', 'en-US', 'en']
+                });
+            """)
         
         if self.context.pages:
             self.page = self.context.pages[0]
@@ -146,10 +195,106 @@ class TransEuClient:
         if self.page:
             await self.page.close()
 
+    async def _wait_for_cloudflare_if_present(self, timeout_sec: int = 300) -> bool:
+        """
+        Проверяет наличие капчи Cloudflare Turnstile на странице.
+        Если капча обнаружена, приостанавливает выполнение и ждет её решения пользователем.
+        """
+        cf_indicators = [
+            'iframe[src*="challenges.cloudflare.com"]',
+            'iframe[src*="challenge-platform"]',
+            'iframe[src*="turnstile"]',
+            'iframe[src*="cdn-cgi"]',
+            'iframe[src*="/challenge"]',
+            'iframe._39ie2m9_a_c',
+            'iframe[class*="_39ie2m"]',
+            'div:has-text("Подтвердите, что вы человек")',
+            'div:has-text("Verify you are human")',
+            'div:has-text("выполнив задание ниже")',
+            '*:has-text("Подтвердите, что вы человек")',
+            '*:has-text("Verify you are human")',
+            '*:has-text("выполнив задание ниже")'
+        ]
+        
+        async def log_iframes():
+            try:
+                iframes = await self.page.locator('iframe').all()
+                for idx, iframe in enumerate(iframes):
+                    src = await iframe.get_attribute('src') or ""
+                    id_attr = await iframe.get_attribute('id') or ""
+                    class_attr = await iframe.get_attribute('class') or ""
+                    logger.info(f"[CF-Debug] Iframe {idx}: id='{id_attr}', class='{class_attr}', src='{src}'")
+            except Exception as e:
+                logger.warning(f"[CF-Debug] Failed to list iframes: {e}")
+
+        # Отладочный листинг фреймов
+        await log_iframes()
+            
+        detected = False
+        for indicator in cf_indicators:
+            try:
+                el = self.page.locator(indicator).first
+                if await el.count() > 0 and await el.is_visible():
+                    detected = True
+                    logger.warning(f"Cloudflare Turnstile detected via indicator: '{indicator}'")
+                    break
+            except Exception:
+                pass
+                
+        if not detected:
+            logger.info("Cloudflare Turnstile not detected by current indicators.")
+            return False
+            
+        logger.warning(f"!!! CLOUDFLARE CAPTCHA DETECTED !!!")
+        logger.warning(f"Please open noVNC at http://89.167.70.67:6080 (or localhost:6080 via start.ps1) and solve the captcha.")
+        try:
+            await self.page.screenshot(path="/tmp/cloudflare_detected.png")
+        except Exception:
+            pass
+            
+        start_time = time.time()
+        consecutive_resolves = 0
+        required_resolves = 3  # Нужно 3 успешных проверки подряд с интервалом, чтобы подтвердить решение
+        
+        while time.time() - start_time < timeout_sec:
+            # Логируем фреймы на каждой итерации для отладки
+            await log_iframes()
+            
+            still_visible = False
+            for indicator in cf_indicators:
+                try:
+                    el = self.page.locator(indicator).first
+                    if await el.count() > 0 and await el.is_visible():
+                        still_visible = True
+                        break
+                except Exception:
+                    pass
+            
+            if not still_visible:
+                consecutive_resolves += 1
+                if consecutive_resolves >= required_resolves:
+                    logger.info("Cloudflare Turnstile captcha resolved or disappeared! Resuming...")
+                    return True
+                logger.info(f"Captcha not detected (resolve check {consecutive_resolves}/{required_resolves}). Waiting...")
+            else:
+                consecutive_resolves = 0
+                logger.info("Waiting for Cloudflare Turnstile to be solved by user...")
+                
+            await self.page.wait_for_timeout(3000)
+            
+        logger.error(f"Cloudflare Turnstile was not solved within {timeout_sec} seconds. Aborting.")
+        return False
+
     async def login(self) -> bool:
         """
-        Perform login to Trans.eu using persistent session.
-        Checks if already logged in (via cookies), skips login form if so.
+        Выполняет вход в Trans.eu согласно spec_trans_eu.md п. 2.1.
+
+        Шаг 0: Проверка состояния сессии по текущему URL.
+        Шаг 1: goto https://platform.trans.eu (автоматический редирект на auth.).
+        Шаг 2: Заполнить [aria-label="TransID"] и [aria-label="Пароль"] из .env.
+        Шаг 3: Нажать button[type="submit"] (кнопка «Вход»).
+        Шаг 4: Дождаться редиректа на /trans-info (LOGIN_FAILED если не произошло).
+        Шаг 5: Нажать «Поиск грузов» в левом меню → дождаться /exchange/offers.
         """
         # #region agent log
         _dbg("login() called", {"username": settings.TRANS_EU_USERNAME[:3]+"***" if settings.TRANS_EU_USERNAME else "(empty)", "has_password": bool(settings.TRANS_EU_PASSWORD)}, "H-E")
@@ -162,91 +307,112 @@ class TransEuClient:
             return False
 
         try:
-            target_url = "https://platform.trans.eu/exchange/offers"
-            
-            if self.page.url == target_url:
-                logger.info("Already on target URL.")
-                return True
-
-            logger.info("Navigating to Trans.eu...")
+            current_url = self.page.url
+            logger.info(f"login() — Шаг 0: проверка состояния. Текущий URL: {current_url}")
             # #region agent log
-            _dbg("login() navigating to target", {"target_url": target_url, "current_url": self.page.url}, "H-C")
-            # #endregion
-            await self.page.goto(target_url, timeout=60000)  
-            
-            await self.page.wait_for_timeout(3000)
-            # #region agent log
-            _dbg("login() after goto + wait", {"current_url": self.page.url, "title": await self.page.title()}, "H-C")
+            _dbg("login() step0 check", {"current_url": current_url}, "H-C")
             # #endregion
 
-            if "id.trans.eu" in self.page.url or "auth.platform.trans.eu" in self.page.url:
-                logger.info("Session expired or new login needed. Redirected to Auth.")
-                # #region agent log
-                _dbg("login() auth redirect detected, looking for form", {"url": self.page.url}, "H-C,H-D")
-                # #endregion
-                
-                await self.page.wait_for_selector('input[type="text"], input[type="email"]', timeout=15000)
-                # #region agent log
-                _dbg("login() form found, filling credentials", {}, "H-D")
-                # #endregion
-                await self.page.fill('input[type="text"], input[type="email"]', settings.TRANS_EU_USERNAME)
-                await self.page.fill('input[type="password"]', settings.TRANS_EU_PASSWORD)
-                
-                await self.page.screenshot(path="/tmp/debug_before_submit.png")
-                await self.page.click('button[type="submit"]')
-                
-                logger.info("Credentials submitted.")
-                # #region agent log
-                _dbg("login() credentials submitted, waiting for redirect or auth code step", {}, "H-D")
-                # #endregion
-                await self.page.wait_for_timeout(4000)
+            # Если мы запускаемся в первый раз и URL пустой (about:blank), сначала переходим на стартовый URL,
+            # чтобы браузер применил сохраненные куки и мы узнали реальный статус авторизации.
+            if current_url == "about:blank" or not current_url:
+                START_URL = "https://platform.trans.eu"
+                logger.info(f"Начальный URL пуст. Выполняем переход на {START_URL} для инициализации сессии...")
+                await self.page.goto(START_URL, timeout=60000)
+                await self.page.wait_for_timeout(3000)
+                await self._wait_for_cloudflare_if_present()
+                current_url = self.page.url
+                logger.info(f"Текущий URL после перехода на стартовую страницу: {current_url}")
 
-                # Authorization/verification code step (e.g. 2FA or portal code)
-                auth_code = (settings.TRANS_EU_AUTH_CODE or "").strip()
-                if auth_code:
-                    code_input = self.page.locator('input[inputmode="numeric"], input[name*="code"], input[name*="otp"], input[placeholder*="code"], input[placeholder*="verification"]').first
-                    try:
-                        if await code_input.is_visible(timeout=5000):
-                            logger.info("Authorization code step detected, entering code.")
-                            await code_input.fill(auth_code)
-                            submit_btn = self.page.locator('button[type="submit"]').first
-                            if await submit_btn.is_visible(timeout=2000):
-                                await submit_btn.click()
-                            await self.page.wait_for_timeout(2000)
-                    except Exception:
-                        pass
+            # --- Шаг 0: Проверка состояния сессии ---
 
-                await self.page.wait_for_url("**/exchange/offers", timeout=60000)
-                logger.info("Login successful (New Session). Waiting for app load...")
-                # #region agent log
-                _dbg("login() redirect OK", {"url": self.page.url}, "H-D")
-                # #endregion
-                try:
-                    await self.page.wait_for_selector('div[data-ctx="basic-filters"]', state='attached', timeout=30000)
-                    logger.info("App shell loaded (filters detected).")
-                except Exception as e:
-                    logger.warning(f"App shell wait timeout: {e}")
-                
+            # Состояние 1: уже на нужной странице
+            if "platform.trans.eu/exchange/offers" in current_url:
+                logger.info("Шаг 0: Уже на странице поиска грузов. Авторизация не требуется.")
                 return True
+
+            # Состояние 2: авторизован, страница /trans-info
+            if "platform.trans.eu/trans-info" in current_url:
+                logger.info("Шаг 0: На /trans-info — переходим через меню «Поиск грузов».")
+                return await self._navigate_to_offers_via_menu()
+
+            # Состояние 3: авторизован, другая страница platform.trans.eu (не auth. и не login)
+            if "platform.trans.eu" in current_url and "auth.platform.trans.eu" not in current_url and "/login" not in current_url:
+                logger.info("Шаг 0: Авторизован, другая страница. Переходим через меню «Поиск грузов».")
+                return await self._navigate_to_offers_via_menu()
+
+            # Состояние 4: не авторизован — выполнить полную процедуру
+            logger.info("Шаг 0: Не авторизован. Запускаем процедуру логина.")
+
+            # Если мы еще не на странице авторизации, перейдем на START_URL
+            if "auth.platform.trans.eu" not in current_url and "/login" not in current_url:
+                START_URL = "https://platform.trans.eu"
+                logger.info(f"Шаг 1: goto {START_URL}")
+                # #region agent log
+                _dbg("login() step1 goto START_URL", {"url": START_URL}, "H-C")
+                # #endregion
+                await self.page.goto(START_URL, timeout=60000)
+                await self.page.wait_for_timeout(3000)
+                logger.info(f"После goto START_URL, текущий URL: {self.page.url}")
+
+            # --- Шаг 2: Ожидание полей и заполнение ---
+            logger.info("Шаг 2: Ожидание поля ввода логина")
+            # #region agent log
+            _dbg("login() step2 waiting for login field", {"url": self.page.url}, "H-D")
+            # #endregion
+            
+            login_selector = 'input[name="login"]'
+            password_selector = 'input[name="password"]'
+            
+            try:
+                await self.page.wait_for_selector(login_selector, timeout=15000)
+            except Exception:
+                logger.warning("Селектор input[name='login'] не найден, используем фолбэк [aria-label='TransID']")
+                login_selector = '[aria-label="TransID"]'
+                await self.page.wait_for_selector(login_selector, timeout=15000)
                 
-            elif "/exchange/offers" in self.page.url:
-                try:
-                    await self.page.wait_for_selector('button[data-ctx="basicFilters.form.submit"]', timeout=10000)
-                    logger.info("Already logged in (Cookies Valid).")
+            try:
+                await self.page.wait_for_selector(password_selector, timeout=5000)
+            except Exception:
+                logger.warning("Селектор input[name='password'] не найден, используем фолбэк [aria-label='Пароль']")
+                password_selector = '[aria-label="Пароль"]'
+                
+            logger.info("Шаг 2: Заполняю TransID и Пароль из .env")
+            await self.page.fill(login_selector, settings.TRANS_EU_USERNAME)
+            await self.page.fill(password_selector, settings.TRANS_EU_PASSWORD)
+            await self.page.screenshot(path="/tmp/debug_before_submit.png")
+
+            # --- Шаг 3: Нажать кнопку «Вход» ---
+            logger.info("Шаг 3: Нажимаю button[type='submit'] (кнопка «Вход»)")
+            # #region agent log
+            _dbg("login() step3 clicking submit", {}, "H-D")
+            # #endregion
+            await self.page.click('button[type="submit"]')
+
+            # --- Шаг 4: Ожидание редиректа на /trans-info ---
+            logger.info("Шаг 4: Ожидание редиректа на /trans-info (timeout=30s)")
+            # #region agent log
+            _dbg("login() step4 waiting for trans-info", {}, "H-D")
+            # #endregion
+            try:
+                await self.page.wait_for_url("**/trans-info**", timeout=30000)
+                logger.info(f"Шаг 4: Успешный вход. Текущий URL: {self.page.url}")
+                # #region agent log
+                _dbg("login() step4 trans-info reached", {"url": self.page.url}, "H-D")
+                # #endregion
+            except Exception as wait_err:
+                if await self._wait_for_cloudflare_if_present():
+                    await self.page.wait_for_url("**/trans-info**", timeout=30000)
+                else:
+                    logger.error(f"LOGIN_FAILED: Редирект на /trans-info не произошёл. URL: {self.page.url}")
                     # #region agent log
-                    _dbg("login() already logged in (cookies valid)", {"url": self.page.url}, "H-C")
+                    _dbg("login() LOGIN_FAILED step4", {"error": str(wait_err), "url": self.page.url}, "H-D")
                     # #endregion
-                    return True
-                except:
-                    logger.warning("On offers URL but Dashboard not ready? Checking login form...")
-                    if await self.page.query_selector('input[type="password"]'):
-                        logger.info("Login form detected on Offers URL.")
-                        pass 
-            
-            # #region agent log
-            _dbg("login() returning True (fallthrough)", {"url": self.page.url}, "H-C")
-            # #endregion
-            return True
+                    await self.page.screenshot(path="/tmp/debug_login_failed.png")
+                    return False
+
+            # --- Шаг 5: Нажать «Поиск грузов» в левом меню ---
+            return await self._navigate_to_offers_via_menu()
 
         except Exception as e:
             logger.error(f"Login/Navigation failed: {str(e)}")
@@ -257,6 +423,76 @@ class TransEuClient:
                 await self.page.screenshot(path="/tmp/debug_login_failed.png")
             except: pass
             return False
+
+    async def _navigate_to_offers_via_menu(self) -> bool:
+        """
+        Шаг 5 (spec_trans_eu.md п. 2.1):
+        Найти ссылку «Поиск грузов» в левом меню и нажать её.
+        Ожидает открытия /exchange/offers.
+        """
+        try:
+            await self._wait_for_cloudflare_if_present()
+            logger.info("Шаг 5: Ожидание ссылки «Поиск грузов» (a[href*='/exchange/offers'])")
+            # #region agent log
+            _dbg("_navigate_to_offers_via_menu() waiting for menu link", {"url": self.page.url}, "H-C")
+            # #endregion
+            await self.page.wait_for_selector('a[href*="/exchange/offers"]', timeout=15000)
+            
+            # --- Вариант 1: Попытка закрыть модальное окно, если оно перекрывает интерфейс ---
+            modal_selectors = [
+                'div[data-ctx="modals-region"]',
+                'div[class*="_qpnf86_b_d"]',
+                'div.qIODY8rrX08nnWOcOFtA'
+            ]
+            for sel in modal_selectors:
+                try:
+                    modal = self.page.locator(sel).first
+                    if await modal.is_visible(timeout=500):
+                        logger.info(f"Обнаружено модальное окно ({sel}). Пытаемся закрыть его кнопкой Escape...")
+                        await self.page.keyboard.press("Escape")
+                        await self.page.wait_for_timeout(1000)
+                        
+                        close_btn = modal.locator('button:has-text("Close"), button:has-text("Закрыть"), button:has-text("Accept"), button:has-text("Принять")').first
+                        if await close_btn.is_visible(timeout=500):
+                            logger.info("Найдена кнопка закрытия/принятия в модалке. Кликаем...")
+                            await close_btn.click()
+                            await self.page.wait_for_timeout(1000)
+                except Exception as modal_err:
+                    logger.debug(f"Ошибка при попытке закрыть модальное окно: {modal_err}")
+
+            # --- Вариант 2: Клик по меню (обычный, а при ошибке перекрытия — с force=True) ---
+            logger.info("Шаг 5: Нажимаю ссылку «Поиск грузов»")
+            try:
+                await self.page.click('a[href*="/exchange/offers"]', timeout=10000)
+            except Exception as click_err:
+                await self._wait_for_cloudflare_if_present()
+                logger.warning(f"Обычный клик не удался ({click_err}). Пробуем клик с force=True...")
+                await self.page.click('a[href*="/exchange/offers"]', force=True)
+                
+            try:
+                await self.page.wait_for_url("**/exchange/offers**", timeout=15000)
+            except Exception as url_err:
+                if await self._wait_for_cloudflare_if_present():
+                    logger.info("Trying to click and wait for URL again after solving captcha...")
+                    await self.page.click('a[href*="/exchange/offers"]', force=True)
+                    await self.page.wait_for_url("**/exchange/offers**", timeout=15000)
+                else:
+                    raise url_err
+
+            logger.info(f"Шаг 5: Открыта страница поиска. URL: {self.page.url}")
+            # #region agent log
+            _dbg("_navigate_to_offers_via_menu() success", {"url": self.page.url}, "H-C")
+            # #endregion
+            return True
+        except Exception as e:
+            logger.error(f"Шаг 5: Не удалось перейти на /exchange/offers через меню: {e}")
+            # #region agent log
+            _dbg("_navigate_to_offers_via_menu() FAILED", {"error": str(e), "url": self.page.url}, "H-C")
+            # #endregion
+            await self.page.screenshot(path="/tmp/debug_menu_navigation_failed.png")
+            return False
+
+
 
     async def search_offers(
         self,
@@ -275,9 +511,21 @@ class TransEuClient:
         Execute search workflow with all filters.
         """
         try:
+            # Check authorization first
+            if not await self.login():
+                raise Exception("User is not authorized on Trans.eu portal.")
+
             # --- 0. Date Validation (Strict) ---
             from datetime import datetime
             
+            def get_next_working_day():
+                from datetime import timedelta
+                from_date = datetime.now()
+                next_day = from_date + timedelta(days=1)
+                while next_day.weekday() >= 5:
+                    next_day += timedelta(days=1)
+                return next_day
+
             def parse_dt(d_str):
                 if not d_str: return None
                 try:
@@ -285,6 +533,18 @@ class TransEuClient:
                 except ValueError:
                     logger.error(f"Invalid date format: {d_str}")
                     return None
+
+            # Apply default dates if not provided according to requirements
+            if not date_from:
+                date_from = datetime.now().strftime("%d.%m.%Y")
+            if not date_to:
+                date_to = date_from
+            if not unloading_date_from:
+                from datetime import timedelta
+                ld_to_dt = parse_dt(date_to) or datetime.now()
+                unloading_date_from = (ld_to_dt + timedelta(days=1)).strftime("%d.%m.%Y")
+            if not unloading_date_to:
+                unloading_date_to = unloading_date_from
 
             ld_from = parse_dt(date_from)
             ld_to = parse_dt(date_to)
@@ -314,15 +574,97 @@ class TransEuClient:
 
             logger.info("Initializing search workflow...")
 
-            # --- Clear Filters (Очистка кеша/предыдущих значений) ---
+            # --- STEP 0: Navigate to the Search page and wait for it to fully load ---
+            search_url = "https://platform.trans.eu/exchange/offers"
+            logger.info(f"Navigating to search page: {search_url}")
+            await self.page.goto(search_url, timeout=60000, wait_until="domcontentloaded")
+            # Wait for the submit button to appear in DOM (it may be hidden if filters are collapsed)
             try:
-                # Try multiple selectors for Clear button
+                await self.page.wait_for_selector(
+                    'button[data-ctx="basicFilters.form.submit"]', state="attached", timeout=30000
+                )
+                logger.info("Search page loaded — submit button found in DOM.")
+            except Exception as nav_err:
+                logger.error(f"Search page did not load properly: {nav_err}")
+                raise Exception(f"Trans.eu search page failed to load: {nav_err}")
+
+            await self.page.wait_for_timeout(2000)  # Let React finish rendering
+
+            # --- EXPAND FILTERS (must happen BEFORE filling any fields) ---
+            # Check if place-loading_place-0 is already visible (filters already expanded)
+            loading_field = self.page.locator('div[data-ctx="place-loading_place-0"] input').first
+            already_expanded = False
+            try:
+                if await loading_field.is_visible(timeout=1000):
+                    already_expanded = True
+                    logger.info("Filters are already expanded (location field is visible).")
+            except Exception:
+                pass
+
+            if not already_expanded:
+                # When returning to the page, filters may be collapsed — location fields are hidden.
+                expand_button_selectors = [
+                    'button:has-text("РАЗВЕРНУТЬ ФИЛЬТРЫ")',
+                    'button:has-text("Развернуть фильтры")',
+                    'button:has-text("EXPAND FILTERS")',
+                    'button:has-text("MORE FILTERS")',
+                    'button:has-text("Expand filters")',
+                    'button:has-text("More filters")',
+                    'button[data-ctx="basic-filters-form-hide-filters-preview"]',
+                ]
+                expanded = False
+                for selector in expand_button_selectors:
+                    try:
+                        expand_btn = self.page.locator(selector).first
+                        if await expand_btn.is_visible(timeout=2000):
+                            logger.info(f"Expanding filters using: {selector}")
+                            await expand_btn.click(force=True)
+                            await self.page.wait_for_timeout(2000)
+                            expanded = True
+                            break
+                    except Exception:
+                        continue
+
+                if not expanded:
+                    logger.info("Expand Filters button not found — filters may already be expanded.")
+
+            # Verify the loading location field is now visible
+            try:
+                await self.page.wait_for_selector(
+                    'div[data-ctx="place-loading_place-0"] input', state="visible", timeout=10000
+                )
+                logger.info("Loading location field is visible.")
+            except Exception as expand_err:
+                logger.warning("Loading location field still not visible. Checking for Cloudflare...")
+                if await self._wait_for_cloudflare_if_present():
+                    logger.info("Retrying expanding filters after solving captcha...")
+                    expanded = False
+                    for selector in expand_button_selectors:
+                        try:
+                            expand_btn = self.page.locator(selector).first
+                            if await expand_btn.is_visible(timeout=2000):
+                                logger.info(f"Expanding filters using: {selector}")
+                                await expand_btn.click(force=True)
+                                await self.page.wait_for_timeout(2000)
+                                expanded = True
+                                break
+                        except Exception:
+                            continue
+                    await self.page.wait_for_selector(
+                        'div[data-ctx="place-loading_place-0"] input', state="visible", timeout=15000
+                    )
+                else:
+                    logger.error("Cloudflare Turnstile was not solved. Aborting search.")
+                    await self.page.screenshot(path="/tmp/debug_filters_not_expanded.png")
+                    raise Exception("Cloudflare Turnstile was not solved. Search aborted.")
+
+            # --- Clear Filters ---
+            try:
                 clear_selectors = [
                     'button[data-ctx="basicFilters.form.clear"]',
                     'button:has-text("Clear filters")',
                     'button:has-text("Clear all")',
                     'button:has-text("Очистить фильтры")',
-                    'button[data-ctx="clear-all"]'
                 ]
                 for sel in clear_selectors:
                     btn = self.page.locator(sel).first
@@ -335,56 +677,37 @@ class TransEuClient:
                 logger.warning(f"Could not clear filters (ignorable): {e}")
 
             logger.info(f"Starting search: {loading_location} -> {unloading_location}")
-            
-            # --- Раскрытие фильтров (EXPAND FILTERS) ---
-            expand_button_selectors = [
-                'button:has-text("EXPAND FILTERS")',
-                'button:has-text("MORE FILTERS")',
-                'button:has-text("Expand filters")',
-                'button:has-text("More filters")',
-                'button[data-ctx="basic-filters-form-hide-filters-preview"]',
-                'button[data-ctx*="filter"]'
-            ]
-            
-            expanded = False
-            for selector in expand_button_selectors:
-                try:
-                    expand_btn = self.page.locator(selector).first
-                    if await expand_btn.is_visible(timeout=1000):
-                        logger.info(f"Expanding filters using: {selector}")
-                        await expand_btn.click()
-                        await self.page.wait_for_timeout(1000)
-                        expanded = True
-                        break
-                except Exception:
-                    continue
-            
-            if not expanded:
-                # Fallback: check if already expanded (basic-filters visible)
-                if await self.page.locator('div[data-ctx="basic-filters"]').is_visible():
-                    logger.info("Filters appear to be already expanded.")
-                else:
-                    logger.warning("Could not find Expand Filters button, trying to proceed anyway.")
 
             # --- 1. Loading Location ---
-            # Передаем радиус +75 км (или из аргумента)
             await self._set_location_field('div[data-ctx="place-loading_place-0"]', loading_location, radius=loading_radius)
-            
+
             # --- 2. Unloading Location ---
-            await self._set_location_field('div[data-ctx="place-unloading_place-0"]', unloading_location, radius=unloading_radius)
+            if unloading_location and unloading_location.strip():
+                await self._set_location_field('div[data-ctx="place-unloading_place-0"]', unloading_location, radius=unloading_radius)
+            else:
+                logger.info("Unloading location not specified, skipping.")
+
+            # Note: Expand Filters was already done above (STEP 0) to make location fields visible.
+            # Date fields should already be visible too.
 
             # --- 3. Dates ---
             adv_filters = self.page.locator('div[data-ctx="advanced-filters"]')
             
-            # Loading Dates
-            logger.info(f"Setting Loading dates: {date_from} - {date_to}")
-            await self._set_date_input(adv_filters, "from", 0, date_from)
-            await self._set_date_input(adv_filters, "to", 0, date_to)
-            
-            # Unloading Dates
-            logger.info(f"Setting Unloading dates: {unloading_date_from} - {unloading_date_to}")
-            await self._set_date_input(adv_filters, "from", 1, unloading_date_from)
+            # Unloading Date To
+            logger.info(f"Setting Unloading date to: {unloading_date_to}")
             await self._set_date_input(adv_filters, "to", 1, unloading_date_to)
+            
+            # Unloading Date From
+            logger.info(f"Setting Unloading date from: {unloading_date_from}")
+            await self._set_date_input(adv_filters, "from", 1, unloading_date_from)
+
+            # Loading Date To
+            logger.info(f"Setting Loading date to: {date_to}")
+            await self._set_date_input(adv_filters, "to", 0, date_to)
+
+            # Loading Date From
+            logger.info(f"Setting Loading date from: {date_from}")
+            await self._set_date_input(adv_filters, "from", 0, date_from)
 
             # --- 4. Weight ---
             if weight_to:
@@ -496,7 +819,17 @@ class TransEuClient:
             search_btn = self.page.locator('button[data-ctx="basicFilters.form.submit"]')
             await search_btn.click()
             
-            await self.page.wait_for_timeout(3000)
+            await self.page.wait_for_timeout(8000)
+            
+            # Save debug screenshot and HTML dump
+            try:
+                await self.page.screenshot(path="/tmp/search_results.png")
+                html_content = await self.page.content()
+                with open("/tmp/search_results.html", "w", encoding="utf-8") as f:
+                    f.write(html_content)
+                logger.info("Saved search results screenshot to /tmp/search_results.png and HTML to /tmp/search_results.html")
+            except Exception as debug_err:
+                logger.warning(f"Failed to save debug info: {debug_err}")
             
             # --- 7. Data Extraction (Import) ---
             logger.info("Extracting search results...")
@@ -644,7 +977,39 @@ class TransEuClient:
         try:
             logger.info(f"Setting location in {container_selector}. Strict sequence for: '{value}'")
             container = self.page.locator(container_selector)
-            await container.wait_for(state="visible", timeout=15000)
+            try:
+                await container.wait_for(state="attached", timeout=15000)
+                await container.locator('input').first.wait_for(state="visible", timeout=15000)
+            except Exception as wait_err:
+                logger.warning(f"Location input not visible. Checking for Cloudflare... ({wait_err})")
+                if await self._wait_for_cloudflare_if_present():
+                    input_el = container.locator('input').first
+                    if not await input_el.is_visible():
+                        logger.info("Location input is still not visible after solving captcha. Re-expanding filters...")
+                        expand_button_selectors = [
+                            'button:has-text("РАЗВЕРНУТЬ ФИЛЬТРЫ")',
+                            'button:has-text("Развернуть фильтры")',
+                            'button:has-text("EXPAND FILTERS")',
+                            'button:has-text("MORE FILTERS")',
+                            'button:has-text("Expand filters")',
+                            'button:has-text("More filters")',
+                            'button[data-ctx="basic-filters-form-hide-filters-preview"]',
+                        ]
+                        for selector in expand_button_selectors:
+                            try:
+                                expand_btn = self.page.locator(selector).first
+                                if await expand_btn.is_visible(timeout=2000):
+                                    logger.info(f"Expanding filters using: {selector}")
+                                    await expand_btn.click(force=True)
+                                    await self.page.wait_for_timeout(2000)
+                                    break
+                            except Exception:
+                                continue
+                    await container.wait_for(state="attached", timeout=15000)
+                    await container.locator('input').first.wait_for(state="visible", timeout=15000)
+                else:
+                    logger.error("Cloudflare Turnstile was not solved. Aborting location input.")
+                    raise Exception("Cloudflare Turnstile was not solved. Location input aborted.")
 
             # --- Parse Input Components ---
             import re
@@ -661,7 +1026,13 @@ class TransEuClient:
             elif len(parts) == 2:
                 if len(parts[0]) == 2 and parts[0].isupper():
                     iso, city_en = parts[0], parts[1]
-                    if re.search(r'\d', city_en): zip_code, city_en = city_en, ""
+                    if re.search(r'\d', city_en):
+                        match = re.match(r'^([\d\s-]+)\s+(.+)$', city_en.strip())
+                        if match:
+                            zip_code = match.group(1).strip()
+                            city_en = match.group(2).strip()
+                        else:
+                            zip_code, city_en = city_en, ""
                 else:
                     city_en, iso = parts[0], parts[1]
             elif len(parts) >= 3:
@@ -714,6 +1085,9 @@ class TransEuClient:
             
             modal_selector = 'div#mainRegionDropdowns span[class*="Option__option"]'
             success = False
+            
+            # Find the input element inside container
+            input_el = container.locator('input').first
 
             for i, attempt in enumerate(attempts):
                 if not attempt: continue
@@ -726,22 +1100,49 @@ class TransEuClient:
                 if await clear_btn.count() > 0 and await clear_btn.is_visible():
                     await clear_btn.click()
                 else:
-                    await container.click(force=True)
+                    await input_el.evaluate("el => { el.removeAttribute('readonly'); el.readOnly = false; }")
+                    await input_el.click(force=True)
+                    await input_el.focus()
                     await self.page.keyboard.press("Control+A")
                     await self.page.keyboard.press("Backspace")
-                await self.page.wait_for_timeout(500)
+                await self.page.wait_for_timeout(1000)
 
-                # 2. Type
-                await self.page.keyboard.type(attempt, delay=100) # Slower typing
-                await self.page.wait_for_timeout(1000) # Wait for debounce
+                # 2. Focus and Type
+                await input_el.evaluate("el => { el.removeAttribute('readonly'); el.readOnly = false; }")
+                
+                label_parent = container.locator('label[data-ctx="select"]').first
+                if await label_parent.count() > 0:
+                    await label_parent.click(force=True)
+                    await self.page.wait_for_timeout(500)
+                    
+                await input_el.click(force=True)
+                await input_el.focus()
+                
+                await self.page.wait_for_timeout(1000)
+                await self.page.keyboard.type(attempt, delay=150)
+                await self.page.wait_for_timeout(2000)
                 
                 # 3. Wait for Modal presence (Confirmation of active field)
                 try:
                     await self.page.wait_for_selector(modal_selector, timeout=8000)
                     
-                    # 4. Click best match to fixate
-                    # We pick the first one as it's usually the most relevant on Trans.eu
-                    dropdown_option = self.page.locator(modal_selector).first
+                    # 4. Click best match to fixate (pick the one with maximum information / longest text)
+                    options_locator = self.page.locator(modal_selector)
+                    options_count = await options_locator.count()
+                    if options_count == 0:
+                        raise Exception("No options in dropdown")
+                        
+                    best_index = 0
+                    longest_len = 0
+                    for idx in range(options_count):
+                        text = await options_locator.nth(idx).text_content()
+                        text_len = len(text.strip()) if text else 0
+                        if text_len > longest_len:
+                            longest_len = text_len
+                            best_index = idx
+                            
+                    logger.info(f"Selecting option at index {best_index} with text length {longest_len}")
+                    dropdown_option = options_locator.nth(best_index)
                     await dropdown_option.click(force=True)
                     
                     logger.info(f"Success at Step {step_num} with '{attempt}'")
@@ -758,12 +1159,16 @@ class TransEuClient:
             # 5. Set Radius if requested
             if radius > 0:
                 await self.page.wait_for_timeout(1000)
-                range_input = container.locator('input[name="range"]')
-                if await range_input.count() > 0:
-                    logger.info(f"Setting radius to {radius} km")
-                    await range_input.click(force=True)
-                    await range_input.fill(str(radius))
-                    await self.page.keyboard.press("Enter")
+                range_input = container.locator('input[name="range"]').first
+                try:
+                    if await range_input.count() > 0 and await range_input.is_visible(timeout=1000):
+                        logger.info(f"Setting radius to {radius} km")
+                        await range_input.click(force=True)
+                        await range_input.fill(str(radius))
+                        await self.page.keyboard.press("Enter")
+                        await self.page.wait_for_timeout(500)
+                except Exception as ex:
+                    logger.info(f"Radius input not visible or not found ({ex}). Skipping as per instructions.")
 
         except Exception as e:
             logger.error(f"Error in _set_location_field: {e}")
