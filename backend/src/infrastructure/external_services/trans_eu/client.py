@@ -324,6 +324,18 @@ class TransEuClient:
                 current_url = self.page.url
                 logger.info(f"Текущий URL после перехода на стартовую страницу: {current_url}")
 
+            # Если мы попали на страницу выхода /logout, значит сессия сброшена — очищаем куки
+            if "/logout" in current_url:
+                START_URL = "https://platform.trans.eu"
+                logger.info("Текущий URL указывает на выход из системы (/logout). Очищаем куки контекста...")
+                await self.context.clear_cookies()
+                logger.info("Куки очищены. Повторно переходим на стартовую страницу...")
+                await self.page.goto(START_URL, timeout=60000)
+                await self.page.wait_for_timeout(3000)
+                await self._wait_for_cloudflare_if_present()
+                current_url = self.page.url
+                logger.info(f"Текущий URL после повторного перехода на стартовую страницу: {current_url}")
+
             # --- Шаг 0: Проверка состояния сессии ---
 
             # Состояние 1: уже на нужной странице
@@ -336,8 +348,8 @@ class TransEuClient:
                 logger.info("Шаг 0: На /trans-info — переходим через меню «Поиск грузов».")
                 return await self._navigate_to_offers_via_menu()
 
-            # Состояние 3: авторизован, другая страница platform.trans.eu (не auth. и не login)
-            if "platform.trans.eu" in current_url and "auth.platform.trans.eu" not in current_url and "/login" not in current_url:
+            # Состояние 3: авторизован, другая страница platform.trans.eu (не auth., не login и не logout)
+            if "platform.trans.eu" in current_url and "auth.platform.trans.eu" not in current_url and "/login" not in current_url and "/logout" not in current_url:
                 logger.info("Шаг 0: Авторизован, другая страница. Переходим через меню «Поиск грузов».")
                 return await self._navigate_to_offers_via_menu()
 
@@ -512,6 +524,8 @@ class TransEuClient:
         """
         try:
             # Check authorization first
+            # ПРАВИЛО (STRICT RULE): Сначала надо войти на портал https://platform.trans.eu и авторизоваться.
+            # Только после успешной авторизации на портале Trans.eu возможен запуск скрапера.
             if not await self.login():
                 raise Exception("User is not authorized on Trans.eu portal.")
 
@@ -601,23 +615,30 @@ class TransEuClient:
             except Exception:
                 pass
 
+            # Шаг 1: Нажать «РАЗВЕРНУТЬ ФИЛЬТРЫ» (EXPAND FILTERS)
+            expand_step1_selectors = [
+                'button:has-text("РАЗВЕРНУТЬ ФИЛЬТРЫ")',
+                'button:has-text("Развернуть фильтры")',
+                'button:has-text("EXPAND FILTERS")',
+                'button:has-text("Expand filters")',
+                'button[data-ctx="basic-filters-form-hide-filters-preview"]',
+            ]
+            # Шаг 2: Нажать «БОЛЬШЕ ФИЛЬТРОВ» (MORE FILTERS) — отдельный шаг
+            more_filters_selectors = [
+                'button:has-text("БОЛЬШЕ ФИЛЬТРОВ")',
+                'button:has-text("Больше фильтров")',
+                'button:has-text("MORE FILTERS")',
+                'button:has-text("More filters")',
+            ]
+
             if not already_expanded:
-                # When returning to the page, filters may be collapsed — location fields are hidden.
-                expand_button_selectors = [
-                    'button:has-text("РАЗВЕРНУТЬ ФИЛЬТРЫ")',
-                    'button:has-text("Развернуть фильтры")',
-                    'button:has-text("EXPAND FILTERS")',
-                    'button:has-text("MORE FILTERS")',
-                    'button:has-text("Expand filters")',
-                    'button:has-text("More filters")',
-                    'button[data-ctx="basic-filters-form-hide-filters-preview"]',
-                ]
+                # Шаг 1: РАЗВЕРНУТЬ ФИЛЬТРЫ
                 expanded = False
-                for selector in expand_button_selectors:
+                for selector in expand_step1_selectors:
                     try:
                         expand_btn = self.page.locator(selector).first
                         if await expand_btn.is_visible(timeout=2000):
-                            logger.info(f"Expanding filters using: {selector}")
+                            logger.info(f"Step 1 — Expanding filters using: {selector}")
                             await expand_btn.click(force=True)
                             await self.page.wait_for_timeout(2000)
                             expanded = True
@@ -626,7 +647,19 @@ class TransEuClient:
                         continue
 
                 if not expanded:
-                    logger.info("Expand Filters button not found — filters may already be expanded.")
+                    logger.info("Step 1 — Expand Filters button not found — may already be expanded.")
+
+                # Шаг 2: БОЛЬШЕ ФИЛЬТРОВ
+                for selector in more_filters_selectors:
+                    try:
+                        more_btn = self.page.locator(selector).first
+                        if await more_btn.is_visible(timeout=2000):
+                            logger.info(f"Step 2 — Expanding more filters using: {selector}")
+                            await more_btn.click(force=True)
+                            await self.page.wait_for_timeout(2000)
+                            break
+                    except Exception:
+                        continue
 
             # Verify the loading location field is now visible
             try:
@@ -638,15 +671,25 @@ class TransEuClient:
                 logger.warning("Loading location field still not visible. Checking for Cloudflare...")
                 if await self._wait_for_cloudflare_if_present():
                     logger.info("Retrying expanding filters after solving captcha...")
-                    expanded = False
-                    for selector in expand_button_selectors:
+                    # Step 1 retry: РАЗВЕРНУТЬ ФИЛЬТРЫ
+                    for selector in expand_step1_selectors:
                         try:
                             expand_btn = self.page.locator(selector).first
                             if await expand_btn.is_visible(timeout=2000):
-                                logger.info(f"Expanding filters using: {selector}")
+                                logger.info(f"Step 1 retry — Expanding filters using: {selector}")
                                 await expand_btn.click(force=True)
                                 await self.page.wait_for_timeout(2000)
-                                expanded = True
+                                break
+                        except Exception:
+                            continue
+                    # Step 2 retry: БОЛЬШЕ ФИЛЬТРОВ
+                    for selector in more_filters_selectors:
+                        try:
+                            more_btn = self.page.locator(selector).first
+                            if await more_btn.is_visible(timeout=2000):
+                                logger.info(f"Step 2 retry — Expanding more filters using: {selector}")
+                                await more_btn.click(force=True)
+                                await self.page.wait_for_timeout(2000)
                                 break
                         except Exception:
                             continue
@@ -720,7 +763,54 @@ class TransEuClient:
                 else:
                     logger.warning("Weight input not found by data-ctx, check DOM.")
 
-            # --- 5. Length (LDM) ---
+            # --- 5. Length (LDM) — Left field «С» = 4.8 (всегда, по спецификации) ---
+            logger.info("Setting LDM From (left field) to default 4.8 per spec")
+            ldm_from_set = False
+            _ldm_labels = ["Длина (погрузочные метры)", "Погрузочные метры", "LDM", "Loading meters", "Długość ładunkowa", "Load meters"]
+            for _ctx in [adv_filters, self.page]:
+                if ldm_from_set:
+                    break
+                for _label in _ldm_labels:
+                    try:
+                        _label_el = _ctx.locator(f"label:has-text('{_label}')").first
+                        if await _label_el.count() > 0 and await _label_el.is_visible():
+                            _container = _label_el.locator("..")
+                            _inputs = _container.locator("input")
+                            if await _inputs.count() < 1:
+                                _container = _container.locator("..")
+                                _inputs = _container.locator("input")
+                            if await _inputs.count() >= 1:
+                                _inp = _inputs.nth(0)
+                                if await _inp.is_visible():
+                                    await _inp.click()
+                                    await self.page.keyboard.press("Control+A")
+                                    await self.page.keyboard.press("Backspace")
+                                    await _inp.fill("4.8")
+                                    await _inp.press("Tab")
+                                    await self.page.wait_for_timeout(500)
+                                    _val = await _inp.input_value()
+                                    if "4" in _val:
+                                        logger.info(f"LDM From set to 4.8 via label '{_label}': {_val}")
+                                        ldm_from_set = True
+                                        break
+                                    # Повтор с запятой (европейский формат)
+                                    await _inp.click()
+                                    await self.page.keyboard.press("Control+A")
+                                    await self.page.keyboard.press("Backspace")
+                                    await _inp.fill("4,8")
+                                    await _inp.press("Tab")
+                                    await self.page.wait_for_timeout(500)
+                                    _val = await _inp.input_value()
+                                    if "4" in _val:
+                                        logger.info(f"LDM From set to 4,8 via label '{_label}': {_val}")
+                                        ldm_from_set = True
+                                        break
+                    except Exception:
+                        pass
+            if not ldm_from_set:
+                logger.warning("LDM From (left field) input not found — панель 'БОЛЬШЕ ФИЛЬТРОВ' может быть не открыта.")
+
+            # --- 5b. Length (LDM) — Right field «До» (из параметра запроса) ---
             if length_to:
                 logger.info(f"Setting Length (LDM) To: {length_to}")
                 length_set = False
@@ -1069,6 +1159,8 @@ class TransEuClient:
                 attempts.append(city_en)
             elif zip_code and not attempts: # Fallback if we only have index
                 attempts.append(zip_code)
+            elif iso and not attempts: # Country-only search
+                attempts.append(iso)
 
             # --- Fallback to Russian if no modal ---
             # Step 4: {City} (RU)
