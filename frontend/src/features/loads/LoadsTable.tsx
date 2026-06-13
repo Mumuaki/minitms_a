@@ -1,11 +1,11 @@
 interface Cargo {
   id: string;
   external_id: string;
-  loading_place: {
+  loading_place?: {
     address: string;
     country_code: string;
   };
-  unloading_place: {
+  unloading_place?: {
     address: string;
     country_code: string;
   };
@@ -50,8 +50,8 @@ export const LoadsTable = ({ loads, isLoading }: LoadsTableProps) => {
           {loads.map((load) => (
             <tr key={load.id} className="hover:bg-gray-50">
               <td className="px-4 py-2 font-medium text-gray-900">{load.external_id}</td>
-              <td className="px-4 py-2 text-gray-700">{load.loading_place.address}</td>
-              <td className="px-4 py-2 text-gray-700">{load.unloading_place.address}</td>
+              <td className="px-4 py-2 text-gray-700">{load.loading_place?.address || 'N/A'}</td>
+              <td className="px-4 py-2 text-gray-700">{load.unloading_place?.address || 'N/A'}</td>
               <td className="px-4 py-2 text-gray-700">{load.loading_date || 'N/A'}</td>
               <td className="px-4 py-2 text-gray-700">
                 {load.weight ? `${load.weight} t` : ''} 

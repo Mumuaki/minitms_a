@@ -6,7 +6,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DISPLAY=:99
+    DISPLAY=:99 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Установка системных зависимостей + виртуальный дисплей + VNC для видимого браузера
 RUN apt-get update && apt-get install -y \
@@ -32,25 +33,24 @@ WORKDIR /workspace
 COPY requirements.txt ./backend/
 RUN pip install --no-cache-dir -r ./backend/requirements.txt
 
-# Playwright: OS-level dependencies
-RUN playwright install-deps chromium
+# Playwright: OS-level dependencies + browser binaries (under root, in system path)
+RUN playwright install-deps chromium \
+    && playwright install chromium
 
 COPY . ./backend/
 
 RUN useradd -m -u 1000 appuser \
     && mkdir -p /workspace/browser_profile \
-    && chown -R appuser:appuser /workspace /opt/novnc
+    && chown -R appuser:appuser /workspace /opt/novnc /ms-playwright
 
 USER appuser
-
-# Playwright: browser binaries as appuser
-RUN playwright install chromium
 
 ENV PYTHONPATH=/workspace
 WORKDIR /workspace/backend
 
-COPY --chown=appuser:appuser entrypoint.sh /workspace/backend/entrypoint.sh
-RUN sed -i 's/\r$//' /workspace/backend/entrypoint.sh && chmod +x /workspace/backend/entrypoint.sh
+COPY --chown=appuser:appuser . /workspace/backend/
+RUN find /workspace/backend -name "entrypoint*.sh" -exec sed -i 's/\r$//' {} + \
+    && chmod +x /workspace/backend/entrypoint*.sh
 
 EXPOSE 8000 6080
 

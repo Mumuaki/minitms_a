@@ -14,6 +14,7 @@ from alembic import context
 # Импортируем Base со всеми моделями
 from backend.src.domain.entities.user import Base
 from backend.src.domain.entities.vehicle import Vehicle
+from backend.src.infrastructure.persistence.sqlalchemy.models.cargo_model import Cargo
 
 # Загружаем переменные окружения
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../../../../backend/.env"))

@@ -1,34 +1,45 @@
-Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+﻿# MiniTMS Stop Script
+# Закрывает SSH-туннель для noVNC
+
+$PID_FILE = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) ".tunnel.pid"
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
-chcp 65001 > $null
 
-$projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$escapedRoot = [Regex]::Escape($projectRoot)
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  MiniTMS — Остановка туннеля" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
 
-$targets = Get-CimInstance Win32_Process | Where-Object {
-    ($_.Name -match 'python(\.exe)?|powershell(\.exe)?|node(\.exe)?') -and
-    $_.CommandLine -and
-    (
-        ($_.CommandLine -match 'uvicorn\s+backend\.main:app') -or
-        ($_.CommandLine -match '\bvite\b')
-    ) -and
-    ($_.CommandLine -match $escapedRoot)
-}
-
-if (-not $targets) {
-    Write-Host "Процессы MiniTMS не найдены." -ForegroundColor Yellow
+if (-not (Test-Path $PID_FILE)) {
+    Write-Host "  INFO: SSH-туннель не запущен (файл .tunnel.pid не найден)" -ForegroundColor Yellow
+    Write-Host "" 
     exit 0
 }
 
-foreach ($proc in $targets) {
-    try {
-        Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
-        Write-Host ("Остановлен PID {0}: {1}" -f $proc.ProcessId, $proc.Name) -ForegroundColor Green
-    }
-    catch {
-        Write-Host ("Не удалось остановить PID {0}: {1}" -f $proc.ProcessId, $_.Exception.Message) -ForegroundColor Red
-    }
+$tunnelPid = Get-Content $PID_FILE -ErrorAction SilentlyContinue
+
+if (-not $tunnelPid) {
+    Write-Host "  INFO: Файл .tunnel.pid пуст" -ForegroundColor Yellow
+    Remove-Item $PID_FILE -Force -ErrorAction SilentlyContinue
+    exit 0
 }
+
+$proc = Get-Process -Id $tunnelPid -ErrorAction SilentlyContinue
+
+if ($proc) {
+    try {
+        Stop-Process -Id $tunnelPid -Force -ErrorAction Stop
+        Write-Host "  OK: SSH-туннель остановлен (PID $tunnelPid)" -ForegroundColor Green
+    } catch {
+        Write-Host "  FAIL: Не удалось остановить процесс PID ${tunnelPid}: $($_.Exception.Message)" -ForegroundColor Red
+    }
+} else {
+    Write-Host "  INFO: Процесс PID $tunnelPid уже не запущен" -ForegroundColor Yellow
+}
+
+Remove-Item $PID_FILE -Force -ErrorAction SilentlyContinue
+Write-Host ""
+Write-Host "  Туннель закрыт. Сервер продолжает работать." -ForegroundColor Gray
+Write-Host "  Для повторного подключения: .\start.ps1" -ForegroundColor Gray
+Write-Host ""

@@ -27,6 +27,11 @@ RUN pip install --no-cache-dir -r ./backend/requirements.txt
 # Копируем весь backend (src/, main*.py, entrypoint*.sh)
 COPY . ./backend/
 
+# Нормализация окончаний строк (Windows CR/LF → Linux LF) и установка прав на запуск
+# Без этого: /bin/bash^M: bad interpreter (из-за \r) или Permission denied
+RUN find /workspace/backend -name "*.sh" -exec sed -i 's/\r$//' {} + \
+    && chmod +x /workspace/backend/entrypoint*.sh
+
 # Создаём непривилегированного пользователя
 RUN useradd -m -u 1000 appuser \
     && chown -R appuser:appuser /workspace

@@ -1,81 +1,114 @@
-# MiniTMS Server Diagnostic Script
-# This script checks all components of the deployed MiniTMS system
+﻿# MiniTMS Server Diagnostic Script
+# Проверяет все компоненты MiniTMS на удалённом VPS (Docker Compose)
 
 $SERVER = "89.167.70.67"
 $USER = "root"
+$COMPOSE_FILE = "docker-compose.prod.yml"
+$PROJECT_DIR = "/opt/minitms"
+
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "MiniTMS Server Diagnostic Tool" -ForegroundColor Cyan
+Write-Host "  MiniTMS Server Diagnostic Tool" -ForegroundColor Cyan
+Write-Host "  Docker Compose Edition" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Test SSH Connection
-Write-Host "[1/10] Testing SSH Connection..." -ForegroundColor Yellow
+# --- 1/10: Проверка SSH-соединения ---
+Write-Host "[1/10] Проверка SSH-соединения..." -ForegroundColor Yellow
 try {
-    $sshTest = ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo 'SSH OK'"
-    if ($sshTest -eq "SSH OK") {
-        Write-Host "✓ SSH connection successful" -ForegroundColor Green
+    $sshTest = ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo SSH_OK"
+    if ($sshTest -eq "SSH_OK") {
+        Write-Host "  OK: SSH-соединение установлено" -ForegroundColor Green
     } else {
-        Write-Host "✗ SSH connection failed" -ForegroundColor Red
+        Write-Host "  FAIL: SSH-соединение не удалось" -ForegroundColor Red
         exit 1
     }
 } catch {
-    Write-Host "✗ SSH connection error: $_" -ForegroundColor Red
+    Write-Host "  FAIL: Ошибка SSH: $_" -ForegroundColor Red
     exit 1
 }
 
-# Check System Info
-Write-Host "`n[2/10] Checking System Information..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "echo '--- System Info ---'; uname -a; echo ''; echo '--- Disk Usage ---'; df -h | grep -E '(Filesystem|/`$|/home)'; echo ''; echo '--- Memory Usage ---'; free -h"
+# --- 2/10: Информация о системе ---
+Write-Host "`n[2/10] Информация о системе..." -ForegroundColor Yellow
+$sysCmd = 'echo "--- Система ---"; uname -a; echo ""; echo "--- Диск ---"; df -h /; echo ""; echo "--- Память ---"; free -h'
+ssh ${USER}@${SERVER} $sysCmd
 
-# Check PostgreSQL
-Write-Host "`n[3/10] Checking PostgreSQL..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "systemctl status postgresql --no-pager | head -20"
-ssh ${USER}@${SERVER} "sudo -u postgres psql -c '\l' | grep minitms"
+# --- 3/10: Статус Docker-контейнеров ---
+Write-Host "`n[3/10] Статус Docker-контейнеров..." -ForegroundColor Yellow
+$psCmd = "cd ${PROJECT_DIR}; docker compose -f ${COMPOSE_FILE} ps"
+ssh ${USER}@${SERVER} $psCmd
 
-# Check Redis
-Write-Host "`n[4/10] Checking Redis..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "systemctl status redis --no-pager | head -20"
-ssh ${USER}@${SERVER} "redis-cli ping"
+# --- 4/10: Проверка Frontend, порт 80 ---
+Write-Host "`n[4/10] Проверка Frontend, порт 80..." -ForegroundColor Yellow
+try {
+    $frontResp = Invoke-WebRequest -Uri "http://${SERVER}" -UseBasicParsing -TimeoutSec 10
+    Write-Host "  OK: Frontend отвечает, HTTP $($frontResp.StatusCode)" -ForegroundColor Green
+} catch {
+    Write-Host "  FAIL: Frontend не отвечает: $($_.Exception.Message)" -ForegroundColor Red
+}
 
-# Check Backend Service
-Write-Host "`n[5/10] Checking Backend Service..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "systemctl status minitms-backend --no-pager 2>/dev/null | head -20 || echo 'Service not found, checking manual process...'"
-ssh ${USER}@${SERVER} "ps aux | grep -E '(uvicorn|python.*main)' | grep -v grep"
+# --- 5/10: Проверка Backend/Gateway, порт 8000 ---
+Write-Host "`n[5/10] Проверка Backend/Gateway, порт 8000..." -ForegroundColor Yellow
+try {
+    $backResp = Invoke-WebRequest -Uri "http://${SERVER}:8000/docs" -UseBasicParsing -TimeoutSec 10
+    Write-Host "  OK: Backend API отвечает, HTTP $($backResp.StatusCode)" -ForegroundColor Green
+} catch {
+    Write-Host "  FAIL: Backend API не отвечает: $($_.Exception.Message)" -ForegroundColor Red
+}
 
-# Check Backend Port
-Write-Host "`n[6/10] Checking Backend Port (8000)..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "netstat -tlnp | grep ':8000'; if [ `$? -ne 0 ]; then ss -tlnp | grep ':8000'; fi"
+# --- 6/10: Проверка noVNC, порт 6080 внутри сервера ---
+Write-Host "`n[6/10] Проверка noVNC, порт 6080 внутри сервера..." -ForegroundColor Yellow
+$noVncCmd = 'curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:6080/ 2>/dev/null'
+$noVncCheck = ssh ${USER}@${SERVER} $noVncCmd
+if ($noVncCheck -eq "200") {
+    Write-Host "  OK: noVNC доступен внутри сервера, HTTP 200" -ForegroundColor Green
+    Write-Host "  INFO: Для доступа с локальной машины запустите .\start.ps1" -ForegroundColor Gray
+} else {
+    Write-Host "  WARN: noVNC не отвечает внутри сервера, код: $noVncCheck" -ForegroundColor Yellow
+}
 
-# Check Frontend Service
-Write-Host "`n[7/10] Checking Frontend Service..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "systemctl status minitms-frontend --no-pager 2>/dev/null | head -20 || echo 'Service not found, checking manual process...'"
-ssh ${USER}@${SERVER} "ps aux | grep -E '(node|npm)' | grep -v grep"
+# --- 7/10: Проверка PostgreSQL ---
+Write-Host "`n[7/10] Проверка PostgreSQL..." -ForegroundColor Yellow
+$pgCmd = "cd ${PROJECT_DIR}; docker compose -f ${COMPOSE_FILE} exec -T postgres pg_isready -U postgres 2>&1"
+$pgCheck = ssh ${USER}@${SERVER} $pgCmd
+if ($pgCheck -match "accepting connections") {
+    Write-Host "  OK: PostgreSQL принимает соединения" -ForegroundColor Green
+} else {
+    Write-Host "  FAIL: PostgreSQL: $pgCheck" -ForegroundColor Red
+}
 
-# Check Frontend Port
-Write-Host "`n[8/10] Checking Frontend Port (80)..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "netstat -tlnp 2>/dev/null | grep -E ':(80|443)' || ss -tlnp | grep -E ':(80|443)'"
+# --- 8/10: Проверка Redis ---
+Write-Host "`n[8/10] Проверка Redis..." -ForegroundColor Yellow
+$redisCmd = "cd ${PROJECT_DIR}; docker compose -f ${COMPOSE_FILE} exec -T redis redis-cli ping 2>&1"
+$redisCheck = ssh ${USER}@${SERVER} $redisCmd
+if ($redisCheck -match "PONG") {
+    Write-Host "  OK: Redis отвечает PONG" -ForegroundColor Green
+} elseif ($redisCheck -match "NOAUTH") {
+    Write-Host "  OK: Redis работает, требует аутентификацию" -ForegroundColor Green
+} else {
+    Write-Host "  FAIL: Redis: $redisCheck" -ForegroundColor Red
+}
 
-# Check Nginx/Web Server
-Write-Host "`n[9/10] Checking Web Server (Nginx/Apache)..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "systemctl status nginx --no-pager 2>/dev/null | head -20 || systemctl status apache2 --no-pager 2>/dev/null | head -20 || echo 'No web server found'"
+# --- 9/10: Последние логи Gateway ---
+Write-Host "`n[9/10] Последние логи Gateway, 5 строк..." -ForegroundColor Yellow
+$gwLogsCmd = "cd ${PROJECT_DIR}; docker compose -f ${COMPOSE_FILE} logs --tail=5 gateway 2>&1"
+ssh ${USER}@${SERVER} $gwLogsCmd
 
-# Check Application Logs
-Write-Host "`n[10/10] Checking Recent Application Logs..." -ForegroundColor Yellow
-ssh ${USER}@${SERVER} "echo '--- Backend Logs (last 20 lines) ---'; tail -20 /var/log/minitms/backend.log 2>/dev/null || tail -20 /opt/minitms/backend/logs/*.log 2>/dev/null || journalctl -u minitms-backend -n 20 --no-pager || echo 'No backend logs found'"
+# --- 10/10: Последние логи Scraping Worker ---
+Write-Host "`n[10/10] Последние логи Scraping Worker, 5 строк..." -ForegroundColor Yellow
+$swLogsCmd = "cd ${PROJECT_DIR}; docker compose -f ${COMPOSE_FILE} logs --tail=5 scraping-worker 2>&1"
+ssh ${USER}@${SERVER} $swLogsCmd
 
+# --- Итог ---
 Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host "Diagnostic Complete!" -ForegroundColor Cyan
+Write-Host "  Диагностика завершена!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
-
-# Test API Endpoints
-Write-Host "`n[BONUS] Testing API Endpoints..." -ForegroundColor Yellow
-Write-Host "Testing Backend Health Check..." -ForegroundColor Gray
-ssh ${USER}@${SERVER} "curl -s http://localhost:8000/health 2>/dev/null || curl -s http://localhost:8000/api/v1/health 2>/dev/null || echo 'Health endpoint not responding'"
-
-Write-Host "`nTesting Backend API Documentation..." -ForegroundColor Gray
-ssh ${USER}@${SERVER} "curl -s -o /dev/null -w 'HTTP Status: %{http_code}\n' http://localhost:8000/docs"
-
-Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host "All checks completed!" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  Адреса сервисов:" -ForegroundColor White
+Write-Host "    Frontend:  http://${SERVER}" -ForegroundColor Gray
+Write-Host "    Backend:   http://${SERVER}:8000" -ForegroundColor Gray
+Write-Host "    API Docs:  http://${SERVER}:8000/docs" -ForegroundColor Gray
+Write-Host "    noVNC:     http://localhost:6080 -- через SSH-туннель" -ForegroundColor Gray
+Write-Host ""

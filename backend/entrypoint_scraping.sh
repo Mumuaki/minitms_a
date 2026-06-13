@@ -24,7 +24,7 @@ x11vnc -display :99 -auth "$AUTH_FILE" -forever -nopw -shared -rfbport 5900 -bg 
 sleep 1
 
 echo "=== [scraping-worker] Starting noVNC web proxy on port 6080 ==="
-websockify --web /opt/novnc 6080 localhost:5900 &
+websockify --web /opt/novnc 6080 127.0.0.1:5900 &
 
 echo "=== [scraping-worker] noVNC ready at http://0.0.0.0:6080 ==="
 

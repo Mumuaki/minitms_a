@@ -16,6 +16,20 @@ from pydantic import BaseModel
 
 from backend.src.infrastructure.api.v1.dependencies import get_current_user
 
+from typing import List
+from fastapi import Query, HTTPException
+from sqlalchemy.orm import Session
+from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
+from backend.src.domain.repositories.cargo_repository import CargoRepository
+from backend.src.infrastructure.persistence.sqlalchemy.repositories.cargo_repository_impl import CargoRepositoryImpl
+from backend.src.application.use_cases.cargo.import_trans_eu_offers import ImportTransEuOffersUseCase
+
+def get_cargo_repository(db: Session = Depends(get_db)) -> CargoRepository:
+    return CargoRepositoryImpl(db)
+
+def get_import_trans_eu_offers_use_case(repo: CargoRepository = Depends(get_cargo_repository)) -> ImportTransEuOffersUseCase:
+    return ImportTransEuOffersUseCase(repo)
+
 router = APIRouter(prefix="/scraping", tags=["Trans.eu Scraping"])
 
 TRANS_EU_USERNAME = os.getenv("TRANS_EU_USERNAME", "")
@@ -90,3 +104,40 @@ async def stop_scraping(
     _scraper_state["is_running"] = False
     _scraper_state["status"] = "idle"
     return {"status": "stopped", "message": "Scraper stopped"}
+
+@router.post(
+    "/import_trans_eu",
+    response_model=List[dict],
+    summary="Запуск импорта из Trans.eu",
+    description="Запускает скрапинг Trans.eu по заданным параметрам и сохраняет результаты в БД."
+)
+async def import_trans_eu(
+    loading: str = Query(..., description="Место загрузки"),
+    unloading: Optional[str] = Query(None, description="Место выгрузки"),
+    loading_radius: int = Query(75, description="Радиус загрузки"),
+    unloading_radius: int = Query(75, description="Радиус выгрузки"),
+    date_from: Optional[str] = Query(None, description="Дата загрузки с (DD.MM.YYYY)"),
+    date_to: Optional[str] = Query(None, description="Дата загрузки по (DD.MM.YYYY)"),
+    unloading_date_from: Optional[str] = Query(None, description="Дата выгрузки с (DD.MM.YYYY)"),
+    unloading_date_to: Optional[str] = Query(None, description="Дата выгрузки по (DD.MM.YYYY)"),
+    weight_to: str = Query("0.9", description="Макс вес"),
+    length_to: Optional[str] = Query(None, description="Макс длина"),
+    use_case: ImportTransEuOffersUseCase = Depends(get_import_trans_eu_offers_use_case)
+):
+    try:
+        result = await use_case.execute(
+            loading=loading,
+            unloading=unloading,
+            loading_radius=loading_radius,
+            unloading_radius=unloading_radius,
+            date_from=date_from,
+            date_to=date_to,
+            unloading_date_from=unloading_date_from,
+            unloading_date_to=unloading_date_to,
+            weight_to=weight_to,
+            length_to=length_to
+        )
+        return [c.dict() for c in result]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

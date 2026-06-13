@@ -2,7 +2,7 @@
 
 .PHONY: help dev dev-up dev-down prod prod-up prod-down vps-deploy logs clean test \
         microservice-up microservice-down ms-restart microservice-logs ms-logs-gateway ms-logs-core ms-logs-cargo \
-        ms-logs-scraping ms-logs-integration ms-ps ms-build ms-clean
+        ms-logs-scraping ms-logs-integration ms-ps ms-build ms-clean ms-deploy ms-swap
 
 help: ## Показать это сообщение помощи
 	@echo "Доступные команды:"
@@ -70,6 +70,12 @@ ms-build: ## Пересобрать образы микросервисов
 
 ms-clean: ## Остановить и удалить microservices (контейнеры + volumes)
 	docker compose -f docker-compose.prod.yml down -v --remove-orphans
+
+ms-deploy: ## Задеплоить микросервисы на VPS (SSH → swap → git pull → build → start)
+	powershell -ExecutionPolicy Bypass -File scripts/ms-deploy.ps1
+
+ms-swap: ## Создать swap 2GB на VPS (выполняется один раз, idempotent)
+	ssh root@89.167.70.67 "if ! swapon --show | grep -q '/swapfile'; then fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab && echo 'Swap activated'; else echo 'Swap already active'; fi && free -h | grep Swap"
 
 # VPS Deployment
 vps-deploy: ## Задеплоить на VPS (PostgreSQL/Redis уже установлены)

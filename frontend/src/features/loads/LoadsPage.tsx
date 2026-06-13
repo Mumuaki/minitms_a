@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { LoadsTable } from './LoadsTable';
 import { apiClient } from '../../infrastructure/api/client';
 
@@ -8,10 +8,32 @@ const fetchLoads = async () => {
   return response.data;
 };
 
+interface SearchFormData {
+  loading: string;
+  unloading: string;
+  loading_radius: number;
+  unloading_radius: number;
+  weight_to: string;
+  length_to: string;
+}
+
+const INITIAL_SEARCH: SearchFormData = {
+  loading: '',
+  unloading: '',
+  loading_radius: 75,
+  unloading_radius: 75,
+  weight_to: '24.0',
+  length_to: '13.6',
+};
+
 export const LoadsPage = () => {
   const [loads, setLoads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchForm, setSearchForm] = useState<SearchFormData>(INITIAL_SEARCH);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(true);
 
   const loadData = async () => {
     setLoading(true);
@@ -19,6 +41,10 @@ export const LoadsPage = () => {
       const data = await fetchLoads();
       setLoads(data.items || []);
       setError(null);
+      // Сворачиваем форму, если грузы есть
+      if ((data.items || []).length > 0) {
+        setIsFormOpen(false);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -29,6 +55,45 @@ export const LoadsPage = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSearchForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!searchForm.loading.trim()) {
+      setSearchError('Укажите место загрузки');
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError(null);
+
+    try {
+      await apiClient.post('/scraping/import_trans_eu', null, {
+        params: {
+          loading: searchForm.loading,
+          unloading: searchForm.unloading,
+          loading_radius: searchForm.loading_radius,
+          unloading_radius: searchForm.unloading_radius,
+          weight_to: searchForm.weight_to,
+          length_to: searchForm.length_to,
+        },
+        timeout: 180000, // 3 мин — скрапинг может быть долгим
+      });
+
+      // После успешного скрапинга — обновляем таблицу
+      await loadData();
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      setSearchError(detail ? String(detail) : `Ошибка скрапинга: ${err.message}`);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return (
     <div className="page-container">
@@ -44,6 +109,119 @@ export const LoadsPage = () => {
         </button>
       </div>
 
+      {/* Форма поиска грузов на Trans.eu */}
+      <div className="card mb-6">
+        <button
+          type="button"
+          onClick={() => setIsFormOpen(!isFormOpen)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2">
+            <Search size={20} className="text-blue-500" />
+            <span className="font-semibold text-lg">Поиск грузов на Trans.eu</span>
+          </div>
+          {isFormOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+
+        {isFormOpen && (
+          <form onSubmit={handleSearchSubmit} className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Загрузка (город) *</label>
+                <input
+                  type="text"
+                  name="loading"
+                  className="input w-full"
+                  placeholder="Например: München, Warszawa"
+                  value={searchForm.loading}
+                  onChange={handleSearchInput}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Выгрузка (город)</label>
+                <input
+                  type="text"
+                  name="unloading"
+                  className="input w-full"
+                  placeholder="Оставьте пустым для любого"
+                  value={searchForm.unloading}
+                  onChange={handleSearchInput}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Радиус загр. (км)</label>
+                <input
+                  type="number"
+                  name="loading_radius"
+                  className="input w-full"
+                  value={searchForm.loading_radius}
+                  onChange={handleSearchInput}
+                  min={0}
+                  max={500}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Радиус выгр. (км)</label>
+                <input
+                  type="number"
+                  name="unloading_radius"
+                  className="input w-full"
+                  value={searchForm.unloading_radius}
+                  onChange={handleSearchInput}
+                  min={0}
+                  max={500}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Макс. вес (т)</label>
+                <input
+                  type="text"
+                  name="weight_to"
+                  inputMode="decimal"
+                  className="input w-full"
+                  placeholder="24.0"
+                  value={searchForm.weight_to}
+                  onChange={handleSearchInput}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Макс. длина (м)</label>
+                <input
+                  type="text"
+                  name="length_to"
+                  inputMode="decimal"
+                  className="input w-full"
+                  placeholder="13.6"
+                  value={searchForm.length_to}
+                  onChange={handleSearchInput}
+                />
+              </div>
+            </div>
+
+            {searchError && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300">
+                {searchError}
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSearching}
+                className="btn bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-wait flex items-center gap-2 px-6"
+              >
+                <Search size={16} className={isSearching ? 'animate-spin' : ''} />
+                {isSearching ? 'Поиск грузов...' : 'Запустить поиск'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300">
           {error}
@@ -53,7 +231,7 @@ export const LoadsPage = () => {
       {!loading && loads.length === 0 && !error && (
         <div className="card text-center py-10">
           <p className="text-muted text-lg mb-2">Грузы не найдены</p>
-          <p className="text-sm text-gray-500">Перейдите в раздел "Автопарк" и нажмите "Искать груз" на карточке ТС</p>
+          <p className="text-sm text-gray-500">Заполните форму выше и нажмите «Запустить поиск», или перейдите в раздел «Автопарк» и нажмите «Искать груз» на карточке ТС</p>
         </div>
       )}
 

@@ -1,16 +1,18 @@
-# MiniTMS Server Fix & Maintenance Script
+# MiniTMS Server Fix & Maintenance Script (Docker Compose Edition)
 # This script helps fix common issues with the deployed system
 
 $SERVER = "89.167.70.67"
 $USER = "root"
+$PROJECT_DIR = "/opt/minitms"
+$COMPOSE_FILE = "docker-compose.prod.yml"
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "MiniTMS Server Fix & Maintenance" -ForegroundColor Cyan
+Write-Host "MiniTMS Server Fix & Maintenance (Docker)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 function Show-Menu {
     Write-Host "`nSelect an action:" -ForegroundColor Yellow
-    Write-Host "1. Restart Backend Service" -ForegroundColor White
+    Write-Host "1. Restart Backend Services" -ForegroundColor White
     Write-Host "2. Restart Frontend Service" -ForegroundColor White
     Write-Host "3. Restart PostgreSQL" -ForegroundColor White
     Write-Host "4. Restart Redis" -ForegroundColor White
@@ -21,9 +23,9 @@ function Show-Menu {
     Write-Host "9. Run Database Migrations" -ForegroundColor White
     Write-Host "10. Clear Redis Cache" -ForegroundColor White
     Write-Host "11. Check Disk Space" -ForegroundColor White
-    Write-Host "12. Update Backend Code (git pull)" -ForegroundColor White
-    Write-Host "13. Install/Update Dependencies" -ForegroundColor White
-    Write-Host "14. Check Service Status" -ForegroundColor White
+    Write-Host "12. Update Code and Rebuild (Git Pull & Build)" -ForegroundColor White
+    Write-Host "13. Rebuild Containers (No Cache)" -ForegroundColor White
+    Write-Host "14. Check Containers Status (docker compose ps)" -ForegroundColor White
     Write-Host "15. Test Trans.eu Connection" -ForegroundColor White
     Write-Host "16. Test GPS Integration" -ForegroundColor White
     Write-Host "17. Backup Database" -ForegroundColor White
@@ -35,101 +37,100 @@ function Show-Menu {
 }
 
 function Restart-BackendService {
-    Write-Host "`nRestarting Backend Service..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "systemctl restart minitms-backend && systemctl status minitms-backend --no-pager | head -20"
+    Write-Host "`nRestarting Backend Services..." -ForegroundColor Yellow
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} restart core-api cargo-engine integration-hub scraping-worker && docker compose -f ${COMPOSE_FILE} ps"
 }
 
 function Restart-FrontendService {
     Write-Host "`nRestarting Frontend Service..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "systemctl restart minitms-frontend && systemctl status minitms-frontend --no-pager | head -20"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} restart frontend && docker compose -f ${COMPOSE_FILE} ps frontend"
 }
 
 function Restart-PostgreSQL {
     Write-Host "`nRestarting PostgreSQL..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "systemctl restart postgresql && systemctl status postgresql --no-pager | head -20"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} restart postgres && docker compose -f ${COMPOSE_FILE} ps postgres"
 }
 
 function Restart-Redis {
     Write-Host "`nRestarting Redis..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "systemctl restart redis && systemctl status redis --no-pager | head -20"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} restart redis && docker compose -f ${COMPOSE_FILE} ps redis"
 }
 
 function Restart-AllServices {
     Write-Host "`nRestarting All Services..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "systemctl restart postgresql redis minitms-backend minitms-frontend && echo 'All services restarted'"
-    Start-Sleep -Seconds 3
-    ssh ${USER}@${SERVER} "systemctl status minitms-backend minitms-frontend --no-pager | head -40"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} restart && docker compose -f ${COMPOSE_FILE} ps"
 }
 
 function View-BackendLogs {
     Write-Host "`nViewing Backend Logs (Ctrl+C to exit)..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "journalctl -u minitms-backend -f"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} logs -f core-api cargo-engine integration-hub scraping-worker"
 }
 
 function View-FrontendLogs {
     Write-Host "`nViewing Frontend Logs (Ctrl+C to exit)..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "journalctl -u minitms-frontend -f"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} logs -f frontend"
 }
 
 function Check-DatabaseMigrations {
     Write-Host "`nChecking Database Migrations..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "cd /opt/minitms/backend && python -m alembic current"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} exec -T core-api alembic current"
 }
 
 function Run-DatabaseMigrations {
     Write-Host "`nRunning Database Migrations..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "cd /opt/minitms/backend && python -m alembic upgrade head"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} exec -T core-api alembic upgrade head"
 }
 
 function Clear-RedisCache {
     Write-Host "`nClearing Redis Cache..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "redis-cli FLUSHDB && echo 'Redis cache cleared'"
+    $cmd = 'cd {0} && REDIS_PASSWORD=$(grep -E "^REDIS_PASSWORD=" .env | cut -d= -f2 | tr -d ''\r\n'') && docker compose -f {1} exec -T redis redis-cli -a $REDIS_PASSWORD FLUSHDB' -f $PROJECT_DIR, $COMPOSE_FILE
+    ssh ${USER}@${SERVER} $cmd
 }
 
 function Check-DiskSpace {
     Write-Host "`nChecking Disk Space..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "df -h"
+    ssh ${USER}@${SERVER} "df -h /"
 }
 
 function Update-BackendCode {
-    Write-Host "`nUpdating Backend Code..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "cd /opt/minitms && git pull && echo 'Code updated'"
+    Write-Host "`nUpdating Code (Git Pull & Rebuild)..." -ForegroundColor Yellow
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && git pull && docker compose -f ${COMPOSE_FILE} up -d --build"
 }
 
 function Install-Dependencies {
-    Write-Host "`nInstalling/Updating Dependencies..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "cd /opt/minitms/backend && pip install -r requirements.txt"
+    Write-Host "`nRebuilding Containers without cache..." -ForegroundColor Yellow
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} build --no-cache && docker compose -f ${COMPOSE_FILE} up -d"
 }
 
 function Check-ServiceStatus {
-    Write-Host "`nChecking Service Status..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "systemctl status minitms-backend minitms-frontend postgresql redis --no-pager | head -80"
+    Write-Host "`nChecking Containers Status..." -ForegroundColor Yellow
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} ps"
 }
 
 function Test-TransEuConnection {
-    Write-Host "`nTesting Trans.eu Connection..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "curl -s -o /dev/null -w 'HTTP Status: %{http_code}\n' https://www.trans.eu"
+    Write-Host "`nTesting Trans.eu Connection from scraper..." -ForegroundColor Yellow
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} exec -T scraping-worker curl -s -o /dev/null -w 'HTTP Status: %{http_code}\n' https://www.trans.eu"
 }
 
 function Test-GPSIntegration {
-    Write-Host "`nTesting GPS Integration..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "curl -s -o /dev/null -w 'HTTP Status: %{http_code}\n' https://a1.gpsguard.eu/api/v1/vehicle/"
+    Write-Host "`nTesting GPS Integration from integration-hub..." -ForegroundColor Yellow
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} exec -T integration-hub curl -s -o /dev/null -w 'HTTP Status: %{http_code}\n' https://a1.gpsguard.eu/api/v1/vehicle/"
 }
 
 function Backup-Database {
     Write-Host "`nCreating Database Backup..." -ForegroundColor Yellow
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    ssh ${USER}@${SERVER} "sudo -u postgres pg_dump minitms > /root/backups/minitms_backup_${timestamp}.sql && echo 'Backup created: /root/backups/minitms_backup_${timestamp}.sql'"
+    ssh ${USER}@${SERVER} "cd ${PROJECT_DIR} && docker compose -f ${COMPOSE_FILE} exec -T postgres pg_dump -U postgres minitms > /root/backups/minitms_backup_${timestamp}.sql && echo 'Backup created: /root/backups/minitms_backup_${timestamp}.sql'"
 }
 
 function View-SystemResources {
     Write-Host "`nViewing System Resources..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "echo '=== CPU ===' && top -bn1 | head -20 && echo '' && echo '=== Memory ===' && free -h && echo '' && echo '=== Disk ===' && df -h"
+    ssh ${USER}@${SERVER} "echo '=== CPU & Memory ===' && free -h && echo '' && echo '=== Docker Stats ===' && docker stats --no-stream"
 }
 
 function Check-NetworkConnectivity {
     Write-Host "`nChecking Network Connectivity..." -ForegroundColor Yellow
-    ssh ${USER}@${SERVER} "echo '=== DNS ===' && nslookup google.com && echo '' && echo '=== External IP ===' && curl -s ifconfig.me && echo '' && echo '=== Open Ports ===' && netstat -tlnp | grep LISTEN"
+    ssh ${USER}@${SERVER} "echo '=== External IP ===' && curl -s ifconfig.me && echo '' && echo '=== Listen Ports ===' && netstat -tlnp"
 }
 
 function Full-SystemDiagnostic {

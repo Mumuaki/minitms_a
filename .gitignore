@@ -102,6 +102,7 @@ Thumbs.db
 tmp/
 temp/
 .cache/
+.tunnel.pid
 
 # Coverage
 coverage/

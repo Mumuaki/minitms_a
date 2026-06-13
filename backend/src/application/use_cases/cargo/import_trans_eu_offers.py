@@ -5,11 +5,13 @@ Orchestrates the scraping, normalization, and persistence of cargo offers.
 
 from typing import List, Optional
 import logging
+import asyncio
 
 from backend.src.domain.repositories.cargo_repository import CargoRepository
 from backend.src.infrastructure.external_services.trans_eu.client import TransEuClient
 from backend.src.application.dto.cargo_dto import CargoDto, LocationDto, CargoStatusColor
 from backend.src.application.use_cases.cargo.calculate_profitability import CalculateProfitabilityUseCase
+from backend.src.infrastructure.external_services.osrm.nominatim_client import NominatimClient
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +25,12 @@ class ImportTransEuOffersUseCase:
         # We assume client is instantiated per request or injected. 
         # For this use case, we'll instantiate it here or pass it in execute.
         # But Client is stateful.
-        self._profitability_calculator = CalculateProfitabilityUseCase() 
+        self._profitability_calculator = CalculateProfitabilityUseCase()
+        self._nominatim = NominatimClient()
 
     async def execute(self, 
                       loading: str, 
-                      unloading: str,
+                      unloading: Optional[str] = None,
                       loading_radius: int = 75,
                       unloading_radius: int = 75,
                       date_from: str = None,
@@ -44,6 +47,9 @@ class ImportTransEuOffersUseCase:
         client = await TransEuClient.get_instance()
         try:
             # 1. Start & Login
+            # ПРАВИЛО (STRICT RULE): Сначала надо войти на портал https://platform.trans.eu и авторизоваться.
+            # Только после успешной авторизации возможен запуск скрапера (переход на /exchange/offers).
+            # ЭТУ ИНСТРУКЦИЮ И ПРОВЕРКУ НЕЛЬЗЯ УДАЛЯТЬ.
             await client.start()
             if not await client.login():
                 raise Exception("Failed to login to Trans.eu")
@@ -67,7 +73,7 @@ class ImportTransEuOffersUseCase:
             if results_list:
                 for item in results_list:
                     try:
-                        dto = self._map_dict_to_dto(item)
+                        dto = await self._map_dict_to_dto_async(item)
                         
                         # Upsert logic
                         existing = self.cargo_repository.get_by_external_id(dto.external_id)
@@ -95,46 +101,55 @@ class ImportTransEuOffersUseCase:
             # BUT, client.stop() kills the playwright process. 
             pass
 
-    def _map_dict_to_dto(self, item: dict) -> CargoDto:
+    async def _map_dict_to_dto_async(self, item: dict) -> CargoDto:
         """
         Convert mapper dictionary to CargoDto.
+        Геокодирует адреса через Nominatim API.
         """
-        # Create minimal LocationDto (Geocoding to be added later or separated)
+        # Адреса из маппера
+        loading_raw = item.get("loading_place", {}).get("raw") or "Unknown"
+        unloading_raw = item.get("unloading_place", {}).get("raw") or "Unknown"
+
+        # Геокодирование через Nominatim
+        # Rate limiting: Nominatim требует не более 1 req/sec
+        loading_coords = await self._nominatim.get_coordinates(loading_raw)
+        await asyncio.sleep(1.0)
+        unloading_coords = await self._nominatim.get_coordinates(unloading_raw)
+        await asyncio.sleep(1.0)
+
+        # Если Nominatim не вернул результат — оставляем 0.0, 0.0 (фолбэк)
+        loading_lat, loading_lon = loading_coords if loading_coords else (0.0, 0.0)
+        unloading_lat, unloading_lon = unloading_coords if unloading_coords else (0.0, 0.0)
+
         loading_loc = LocationDto(
-            address=item.get("loading_place", {}).get("raw") or "Unknown",
-            country_code="EU", # Placeholder
-            lat=0.0,
-            lon=0.0
+            address=loading_raw,
+            country_code="EU",
+            lat=loading_lat,
+            lon=loading_lon
         )
         unloading_loc = LocationDto(
-            address=item.get("unloading_place", {}).get("raw") or "Unknown",
+            address=unloading_raw,
             country_code="EU",
-            lat=0.0,
-            lon=0.0
+            lat=unloading_lat,
+            lon=unloading_lon
         )
 
-        # Dates - parse if possible, or leave None
-        # item['loading_date_raw'] might be "28.01"
-        # We need a robust date parser here or in mapper. 
-        # For now, let's keep it None if mapper didn't produce date objects.
-        # Mapper currently returns raw strings mostly.
-        
         dto = CargoDto(
-            id="", # Will be assigned by DB or ignored on create
-            external_id=item.get("external_id") or f"gen-{item.get('company_name')}-{item.get('price')}", # Fallback/Mock
+            id="",
+            external_id=item.get("external_id") or f"gen-{item.get('company_name')}-{item.get('price')}",
             source="trans.eu",
             loading_place=loading_loc,
             unloading_place=unloading_loc,
-            loading_date=None, # To be implemented: string to date parsing
+            loading_date=None,
             unloading_date=None,
-            weight=item.get("weight"), # Float
+            weight=item.get("weight"),
             body_type=item.get("body_type"),
             price=item.get("price"),
             distance_trans_eu=item.get("distance_trans_eu"),
             distance_osm=None,
             profitability=None,
             is_hidden=False,
-            created_at="" # Pydantic/Orm will handle
+            created_at=""
         )
-        
+
         return dto

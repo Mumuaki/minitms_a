@@ -155,12 +155,23 @@ export const FleetPage = () => {
       setLocationError(`ТС ${vehicle.license_plate}: нет GPS-локации. Сначала обновите местоположение.`);
       return;
     }
+    
+    // Открываем окно noVNC для визуального контроля скрапинга СРАЗУ по клику
+    // Это важно сделать до `await`, иначе браузер сочтет это popup-ом без действия пользователя и заблокирует.
+    const noVncUrl = `http://${window.location.hostname}:6080/vnc.html?autoconnect=true&resize=scale`;
+    const vncWindow = window.open(noVncUrl, '_blank', 'width=1024,height=768');
+    
+    if (!vncWindow) {
+        setLocationError('Браузер заблокировал всплывающее окно трансляции скрапера. Пожалуйста, разрешите всплывающие окна для работы системы.');
+    }
+
     setSearchingCargoId(vehicle.id);
     setLocationError(null);
+
     try {
       const weightTo = ((vehicle.payload_capacity || 24000) / 1000).toFixed(1);
       const lengthTo = vehicle.length.toString();
-      await apiClient.post('/cargos/import_trans_eu', null, {
+      await apiClient.post('/scraping/import_trans_eu', null, {
         params: {
           loading: vehicle.current_location,
           unloading: '',
