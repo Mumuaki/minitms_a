@@ -1,57 +1,73 @@
 import requests
+import logging
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 from backend.src.domain.services.gps_service import GpsService
 from backend.src.infrastructure.config.settings import settings
 
+logger = logging.getLogger(__name__)
+
 class GpsGuardAdapter(GpsService):
+    def _reverse_geocode(self, lat: float, lon: float) -> Optional[str]:
+        """
+        Использует публичный API Nominatim (OpenStreetMap) для получения города и страны по координатам.
+        Соблюдает ограничение 1 запрос/сек и передает User-Agent.
+        """
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
+        headers = {
+            "User-Agent": "MiniTMS-GPS-Adapter/1.0 (contact@minitms.local)"
+        }
+        try:
+            response = requests.get(url, headers=headers, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                address = data.get("address", {})
+                
+                # Приоритет полей для города
+                city = address.get("city") or address.get("town") or address.get("village")
+                country = address.get("country_code", "").upper()
+                
+                if city and country:
+                    return f"{city}, {country}"
+                elif city:
+                    return city
+                elif country:
+                    return country
+        except Exception as e:
+            logger.warning(f"Nominatim Geocoding error: {e}")
+            
+        return None
+
     def get_vehicle_location(self, tracker_id: str) -> Tuple[Optional[str], Optional[datetime]]:
         """
         Fetches vehicle location from https://a1.gpsguard.eu/api/v1/vehicle/{tracker_id}
         """
-        
-        # If no API key is set, perhaps we should still rely on Mock or fail? 
-        # For this implementation, I will attempt the request.
-        
         url = f"{settings.GPS_GUARD_BASE_URL}/vehicle/{tracker_id}"
         headers = {}
         if settings.GPS_GUARD_API_KEY:
             headers["Authorization"] = f"Bearer {settings.GPS_GUARD_API_KEY}"
-            # Or maybe "X-API-Key"? Standard is often Bearer or custom.
-            # Without specific docs, I'll Assume Headers or just public URL if user didn't specify key.
 
         try:
-            # Using synchronous requests as GpsService is sync
             response = requests.get(url, headers=headers, timeout=5)
             
             if response.status_code == 200:
                 data = response.json()
-                
-                # Assume standard format. 
-                # If the user says "import real location", I need to parse it.
-                # Possible formats:
-                # 1. Flat: {"lat": 1.2, "lon": 3.4, "last_updated": "..."}
-                # 2. Nested: {"data": {"location": ...}}
-                # Since I cannot know the exact format, I will code defensively 
-                # and look for common fields.
                 
                 lat = data.get("lat") or data.get("latitude")
                 lon = data.get("lon") or data.get("lng") or data.get("longitude")
                 address = data.get("address")
                 
                 last_updated_str = data.get("last_updated") or data.get("timestamp") or data.get("time")
-                
                 last_updated = None
+                
                 if last_updated_str:
                     try:
-                         # Attempt ISO parsing
-                         last_updated = datetime.fromisoformat(last_updated_str.replace('Z', '+00:00'))
-                    except:
-                         last_updated = datetime.now(timezone.utc) # Fallback
+                        last_updated = datetime.fromisoformat(str(last_updated_str).replace('Z', '+00:00'))
+                    except Exception:
+                        last_updated = datetime.now(timezone.utc)
                 else:
                     last_updated = datetime.now(timezone.utc)
 
-                # Try to parse address if provided, otherwise fallback
                 location_str = None
                 if address and isinstance(address, dict):
                     iso = address.get("country_code", "").upper()
@@ -63,19 +79,22 @@ class GpsGuardAdapter(GpsService):
                 elif isinstance(address, str):
                     location_str = address
 
+                # Обратное геокодирование, если от провайдера нет адреса, но есть координаты
                 if not location_str and lat and lon:
-                    # If we only have lat/lon, we might want to do reverse geocoding here 
-                    # but for this adapter we just return lat, lon as fallback
-                    location_str = f"{lat}, {lon}"
+                    try:
+                        location_str = self._reverse_geocode(float(lat), float(lon))
+                    except ValueError:
+                        pass
+                        
+                    # Fallback на raw координаты
+                    if not location_str:
+                        location_str = f"{lat}, {lon}"
+                        
                 return location_str, last_updated
             else:
-                print(f"GPS Guard API Error: {response.status_code} - {response.text}")
-                # Fallback to Mock or None? 
-                # User request: "import real location".
-                # If API fails, better return None to indicate issue? or Mock...
-                # Let's return None to avoid misleading data.
+                logger.warning(f"GPS Guard API Error: {response.status_code} - {response.text}")
                 return None, None
                 
         except Exception as e:
-            print(f"GPS Guard Connection Error: {e}")
+            logger.error(f"GPS Guard Connection Error: {e}")
             return None, None

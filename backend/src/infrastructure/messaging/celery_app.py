@@ -8,14 +8,16 @@ Autodiscovery задач: добавлять новые модули с зада
 import os
 from celery import Celery
 
-# REDIS_URL берётся из переменной окружения (задаётся в backend/.env)
-# Формат: redis://:PASSWORD@redis:6379/0
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+from backend.src.infrastructure.config.settings import settings
 
 app = Celery(
     "minitms",
-    broker=REDIS_URL,
-    backend=REDIS_URL,
+    broker=settings.REDIS_URL,
+    backend=settings.REDIS_URL,
+    include=[
+        "backend.src.application.tasks.scraping_tasks",
+        "backend.src.application.tasks.gps_tasks"
+    ]
 )
 
 app.conf.update(
@@ -36,7 +38,27 @@ app.conf.update(
 
     # Лимит хранения результатов: 1 день
     result_expires=86400,
+
+    # Маршрутизация задач
+    task_routes={
+        "backend.src.application.tasks.scraping_tasks.*": {"queue": "scraping"},
+        "backend.src.application.tasks.gps_tasks.*": {"queue": "celery"},
+        "backend.src.application.tasks.notification_tasks.*": {"queue": "notifications"},
+    },
+
+    # Лимиты времени (300 сек для ручного решения капчи)
+    task_time_limit=330,
+    task_soft_time_limit=300,
 )
+
+from celery.schedules import crontab
+
+app.conf.beat_schedule = {
+    "sync-daily-mileage-at-midnight": {
+        "task": "sync_daily_mileage",
+        "schedule": crontab(hour=0, minute=5),
+    },
+}
 
 # Имя переменной совпадает с GEMINI.md — celery_app (для ссылки в compose)
 celery_app = app

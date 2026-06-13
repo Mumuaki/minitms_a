@@ -21,15 +21,6 @@ class LoginRequest(BaseModel):
     remember_me: bool = Field(default=False, description="Запомнить меня (30 дней)")
 
 
-class RefreshRequest(BaseModel):
-    """
-    Схема запроса на обновление токена.
-    
-    Используется для POST /auth/refresh.
-    """
-    refresh_token: str = Field(..., description="Refresh token для обновления")
-
-
 class TokenResponse(BaseModel):
     """
     Схема ответа с токенами.
@@ -37,7 +28,6 @@ class TokenResponse(BaseModel):
     Возвращается при успешном логине или refresh.
     """
     access_token: str = Field(..., description="JWT Access Token")
-    refresh_token: str = Field(..., description="JWT Refresh Token")
     token_type: str = Field(default="bearer", description="Тип токена")
 
 

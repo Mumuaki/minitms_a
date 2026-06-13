@@ -64,14 +64,52 @@ app.add_middleware(
 )
 
 
-# #region agent log
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "type": "about:blank",
+            "title": "HTTP Error",
+            "status": exc.status_code,
+            "detail": str(exc.detail),
+            "instance": str(request.url.path)
+        }
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=422,
+        content={
+            "type": "about:blank",
+            "title": "Validation Error",
+            "status": 422,
+            "detail": str(exc.errors()),
+            "instance": str(request.url.path)
+        }
+    )
+
 @app.exception_handler(Exception)
 async def _agent_exception_handler(request: Request, exc: Exception):
     logging.exception("Unhandled exception: %s", exc)
     traceback.print_exc()
     from fastapi.responses import JSONResponse
-    return JSONResponse(status_code=500, content={"detail": str(exc)})
-# #endregion
+    return JSONResponse(
+        status_code=500, 
+        content={
+            "type": "about:blank",
+            "title": "Internal Server Error",
+            "status": 500,
+            "detail": str(exc),
+            "instance": str(request.url.path)
+        }
+    )
 
 # Подключение роутеров API v1
 api_v1_prefix = "/api/v1"

@@ -43,6 +43,8 @@ def map_to_cargo(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         "currency": currency,
         "distance_trans_eu": distance_km,
         "company_name": raw_data.get("company_name"),
+        "company_rating": raw_data.get("company_rating_raw"),
+        "published_at": raw_data.get("published_at_raw"),
         "raw_data": raw_data # Keep raw validation
     }
 
@@ -55,12 +57,11 @@ def _parse_price(price_str: Optional[str]):
     
     # Extract number
     currency = "EUR"
+    is_pln = False
     amount = 0.0
     
-    if "EUR" in clean or "€" in clean:
-        currency = "EUR"
-    elif "PLN" in clean:
-        currency = "PLN" # Mapper should ideally convert, but we need rates. keeping normalized currency code.
+    if "PLN" in clean:
+        is_pln = True
     
     # Simple regex for number
     match = re.search(r'[\d\.,]+', clean)
@@ -68,10 +69,13 @@ def _parse_price(price_str: Optional[str]):
         num_str = match.group(0).replace(",", ".")
         try:
             amount = float(num_str)
+            # Conversion to EUR if PLN
+            if is_pln:
+                amount = round(amount / 4.3, 2)
         except ValueError:
             pass
             
-    return amount, currency
+    return amount, "EUR"
 
 def _parse_distance(dist_str: Optional[str]) -> Optional[int]:
     if not dist_str:

@@ -51,7 +51,7 @@ def get_vehicle_stats(
 
     active = sum(1 for v in vehicles if getattr(v, "is_active", True))
     total_capacity = sum(
-        getattr(v, "load_capacity", 0) or 0 for v in vehicles
+        getattr(v, "payload_capacity", 0) or 0 for v in vehicles
     )
     avg_capacity = total_capacity / total if total else 0.0
 

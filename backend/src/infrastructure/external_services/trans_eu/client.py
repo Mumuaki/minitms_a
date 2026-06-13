@@ -247,6 +247,20 @@ class TransEuClient:
             
         logger.warning(f"!!! CLOUDFLARE CAPTCHA DETECTED !!!")
         logger.warning(f"Please open noVNC at http://89.167.70.67:6080 (or localhost:6080 via start.ps1) and solve the captcha.")
+        
+        # Обновляем статус в Celery и отправляем уведомление
+        try:
+            from celery import current_task
+            from backend.src.infrastructure.messaging.celery_app import celery_app
+            if current_task:
+                current_task.update_state(state='WAITING_CAPTCHA')
+                celery_app.send_task(
+                    "backend.src.application.tasks.notification_tasks.send_telegram_alert", 
+                    kwargs={"message": "Cloudflare CAPTCHA detected. Please solve it via noVNC: http://89.167.70.67:6080"}
+                )
+        except Exception as e:
+            logger.warning(f"Failed to update Celery state or send alert: {e}")
+
         try:
             await self.page.screenshot(path="/tmp/cloudflare_detected.png")
         except Exception:

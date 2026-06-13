@@ -43,8 +43,12 @@ class CargoDto(BaseModel):
     distance_trans_eu: Optional[int]
     distance_osm: Optional[int]
     profitability: Optional[ProfitabilityDto]
+    route_polyline: Optional[str] = None
     is_hidden: bool
+    company_rating: Optional[str] = None
+    published_at: Optional[str] = None
     created_at: str  # ISO format
+    is_stale: bool = False  # Флаг устаревших данных (fallback)
 
 
 class SearchCargoRequestDto(BaseModel):

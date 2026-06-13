@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # --- App ---
     APP_NAME: str = "MiniTMS"
     DEBUG: bool = True
+    REDIS_URL: str = Field(default="redis://redis:6379/0", description="Redis connection URL for Celery")
 
     # --- Trans.eu Credentials ---
     TRANS_EU_USERNAME: str = Field(default="", description="Login email for Trans.eu")

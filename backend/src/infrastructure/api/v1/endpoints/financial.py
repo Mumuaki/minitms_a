@@ -10,31 +10,46 @@ Financial Planning Endpoints.
 from typing import List, Optional
 from datetime import datetime, date
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from backend.src.infrastructure.api.v1.dependencies import get_current_user
+from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
+from backend.src.domain.repositories.plan_repository import PlanRepository
+from backend.src.infrastructure.persistence.sqlalchemy.repositories.plan_repository import SqlAlchemyPlanRepository
+from backend.src.domain.entities.plan import FinancialPlan as FinancialPlanEntity
 
 router = APIRouter(prefix="/financial", tags=["Financial Planning"])
 
+# ── Dependencies ──────────────────────────────────────────────────────────────
+
+def get_plan_repository(db: Session = Depends(get_db)) -> PlanRepository:
+    return SqlAlchemyPlanRepository(db)
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
-class FinancialPlan(BaseModel):
+class FinancialPlanResponse(BaseModel):
     id: int
-    name: str
-    period_start: str
-    period_end: str
+    vehicle_id: int
+    period_start: date
+    period_end: date
     revenue_target: float
-    revenue_actual: float
-    expenses_target: float
-    expenses_actual: float
-    profit_target: float
-    profit_actual: float
+    margin_target: float
+    distance_target: float
     currency: str
-    status: str
-    created_at: str
+    
+    class Config:
+        from_attributes = True
 
+class FinancialPlanCreate(BaseModel):
+    vehicle_id: int
+    period_start: date
+    period_end: date
+    revenue_target: float
+    margin_target: float
+    distance_target: float
+    currency: str = "EUR"
 
 class FinancialDashboard(BaseModel):
     period: str
@@ -52,92 +67,58 @@ class FinancialDashboard(BaseModel):
     currency: str
 
 
-# ── Sample data ───────────────────────────────────────────────────────────────
-
-_PLANS: List[FinancialPlan] = [
-    FinancialPlan(
-        id=1,
-        name="Q1 2026",
-        period_start="2026-01-01",
-        period_end="2026-03-31",
-        revenue_target=150000.0,
-        revenue_actual=142500.0,
-        expenses_target=110000.0,
-        expenses_actual=108200.0,
-        profit_target=40000.0,
-        profit_actual=34300.0,
-        currency="EUR",
-        status="active",
-        created_at="2026-01-01T00:00:00",
-    ),
-    FinancialPlan(
-        id=2,
-        name="Q2 2026",
-        period_start="2026-04-01",
-        period_end="2026-06-30",
-        revenue_target=180000.0,
-        revenue_actual=0.0,
-        expenses_target=125000.0,
-        expenses_actual=0.0,
-        profit_target=55000.0,
-        profit_actual=0.0,
-        currency="EUR",
-        status="planned",
-        created_at="2026-01-15T00:00:00",
-    ),
-]
-
-
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-@router.get("/plans", response_model=List[FinancialPlan])
+@router.get("/plans", response_model=List[FinancialPlanResponse])
 async def get_financial_plans(
-    status_filter: Optional[str] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    repo: PlanRepository = Depends(get_plan_repository),
     current_user=Depends(get_current_user),
 ):
     """Список финансовых планов."""
-    plans = _PLANS
-    if status_filter:
-        plans = [p for p in plans if p.status == status_filter]
+    if not start_date:
+        start_date = date(datetime.now().year, datetime.now().month, 1)
+    if not end_date:
+        end_date = date(datetime.now().year, 12, 31)
+        
+    plans = repo.get_all_for_period(start_date, end_date)
     return plans
 
 
-@router.post("/plans", response_model=FinancialPlan, status_code=status.HTTP_201_CREATED)
+@router.post("/plans", response_model=FinancialPlanResponse, status_code=status.HTTP_201_CREATED)
 async def create_financial_plan(
-    name: str,
-    period_start: str,
-    period_end: str,
-    revenue_target: float,
-    expenses_target: float,
-    currency: str = "EUR",
+    plan_in: FinancialPlanCreate,
+    repo: PlanRepository = Depends(get_plan_repository),
     current_user=Depends(get_current_user),
 ):
     """Создать новый финансовый план."""
-    new_id = max(p.id for p in _PLANS) + 1 if _PLANS else 1
-    plan = FinancialPlan(
-        id=new_id,
-        name=name,
-        period_start=period_start,
-        period_end=period_end,
-        revenue_target=revenue_target,
-        revenue_actual=0.0,
-        expenses_target=expenses_target,
-        expenses_actual=0.0,
-        profit_target=revenue_target - expenses_target,
-        profit_actual=0.0,
-        currency=currency,
-        status="planned",
-        created_at=datetime.utcnow().isoformat(),
+    existing = repo.get_by_vehicle_and_period(plan_in.vehicle_id, plan_in.period_start, plan_in.period_end)
+    if existing:
+        raise HTTPException(status_code=400, detail="Plan already exists for this vehicle in this period")
+        
+    new_plan = FinancialPlanEntity(
+        vehicle_id=plan_in.vehicle_id,
+        period_start=plan_in.period_start,
+        period_end=plan_in.period_end,
+        revenue_target=plan_in.revenue_target,
+        margin_target=plan_in.margin_target,
+        distance_target=plan_in.distance_target,
+        currency=plan_in.currency
     )
-    _PLANS.append(plan)
-    return plan
+    saved_plan = repo.save(new_plan)
+    return saved_plan
 
 
 @router.get("/dashboard", response_model=FinancialDashboard)
 async def get_financial_dashboard(
     current_user=Depends(get_current_user),
 ):
-    """Сводная финансовая статистика за текущий месяц."""
+    """
+    Сводная финансовая статистика. 
+    В реальной системе здесь будет агрегация данных из OrderRepository и PlanRepository.
+    Пока возвращаем мок для сохранения структуры дашборда до реализации Fact Stats.
+    """
     return FinancialDashboard(
         period="February 2026",
         total_revenue=48500.0,

@@ -88,7 +88,6 @@ if ! "$CHROME_BIN" --headless=new --no-sandbox --disable-gpu --dump-dom about:bl
 fi
 echo "=== [scraping-worker] Chromium launch smoke-test passed ==="
 
-# ── 5. Celery Worker (ВМЕСТО uvicorn) ───────────────────────────────────────
-echo "=== [scraping-worker] Starting Celery worker for queue 'scraping' ==="
-# concurrency=1 обязателен, чтобы несколько задач не конфликтовали за один браузер
-exec celery -A backend.src.infrastructure.messaging.celery_app worker -Q scraping --concurrency=1 --loglevel=info
+# ── 5. uvicorn ──────────────────────────────────────────────────────────────
+echo "=== [scraping-worker] Starting uvicorn on port 8003 ==="
+exec uvicorn backend.main_.main_scraping:app --host 0.0.0.0 --port 8003

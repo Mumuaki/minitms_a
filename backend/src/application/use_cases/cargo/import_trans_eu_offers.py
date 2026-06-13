@@ -149,6 +149,8 @@ class ImportTransEuOffersUseCase:
             distance_osm=None,
             profitability=None,
             is_hidden=False,
+            company_rating=item.get("company_rating"),
+            published_at=item.get("published_at"),
             created_at=""
         )
 

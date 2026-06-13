@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, date
 from typing import Optional, Dict, Any
 
-from sqlalchemy import String, Boolean, Integer, DateTime, Date, Numeric, JSON, Enum as SQLEnum
+from sqlalchemy import String, Boolean, Integer, DateTime, Date, Numeric, JSON, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -43,7 +43,6 @@ class Cargo(Base):
     # Идентификатор на внешней платформе (Trans.eu ID)
     external_id: Mapped[str] = mapped_column(
         String(100),
-        unique=True,
         nullable=False,
         index=True
     )
@@ -68,9 +67,10 @@ class Cargo(Base):
     # Финансовые показатели
     price: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
 
-    # Дистанции
+    # Дистанции и геометрия
     distance_trans_eu: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     distance_osm: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    route_polyline: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Рентабельность
     rate_per_km: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
@@ -85,11 +85,26 @@ class Cargo(Base):
 
     # Служебные флаги
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    # Дополнительные данные с биржи
+    company_rating: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    published_at: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     # Таймстампы
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow
+    )
+    
+    # Bucket для версионирования истории (идемпотентность)
+    snapshot_time_bucket: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    __table_args__ = (
+        UniqueConstraint('source', 'external_id', 'snapshot_time_bucket', name='uix_cargo_source_ext_bucket'),
     )
 
     def __repr__(self) -> str:

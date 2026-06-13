@@ -9,7 +9,8 @@ Auth Endpoints — REST API для авторизации.
 ВАЖНО: Теперь используется UserRepository (п.1.5).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
 from sqlalchemy.orm import Session
@@ -21,7 +22,6 @@ from backend.src.infrastructure.security.jwt_handler import (
 )
 from backend.src.infrastructure.security.password_hasher import verify_password
 from backend.src.infrastructure.api.v1.schemas.auth_schema import (
-    RefreshRequest,
     TokenResponse,
     UserResponse,
     ErrorResponse,
@@ -60,6 +60,7 @@ def get_user_repository(db: Session = Depends(get_db)) -> UserRepository:
     description="Аутентификация по email и паролю. Возвращает access и refresh токены.",
 )
 async def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     user_repo: UserRepository = Depends(get_user_repository)
 ) -> TokenResponse:
@@ -111,24 +112,48 @@ async def login(
                 detail="Account is disabled",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+            
+        if user.is_locked():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is locked due to too many failed attempts. Try again later.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     
         _agent_log("verify_password_start", {}, "B")
         if not verify_password(form_data.password, user.password_hash):
+            user.increment_failed_attempts()
+            if user.failed_login_attempts >= 5:
+                user.locked_until = datetime.now() + timedelta(minutes=15)
+            user_repo.save(user)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+            
+        # Успешный вход
+        user.reset_failed_attempts()
+        user_repo.save(user)
     
         role_value = user.role.value if hasattr(user.role, 'value') else user.role
         _agent_log("create_tokens_start", {"role_value": str(role_value)}, "C")
         access_token = create_access_token(user_id=user.id, role=role_value)
-        refresh_token = create_refresh_token(user_id=user.id, remember_me=False)
+        refresh_token_val = create_refresh_token(user_id=user.id, remember_me=False)
         _agent_log("create_tokens_done", {}, "C")
+        
+        # Устанавливаем refresh token в httpOnly cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token_val,
+            httponly=True,
+            max_age=30 * 24 * 60 * 60, # 30 дней
+            secure=True, 
+            samesite="lax"
+        )
     
         return TokenResponse(
             access_token=access_token,
-            refresh_token=refresh_token,
             token_type="bearer",
         )
     except HTTPException:
@@ -146,7 +171,8 @@ async def login(
     description="Обновляет access token по refresh token.",
 )
 async def refresh_token(
-    request: RefreshRequest,
+    request: Request,
+    response: Response,
     user_repo: UserRepository = Depends(get_user_repository)
 ) -> TokenResponse:
     """
@@ -160,8 +186,12 @@ async def refresh_token(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
+    refresh_token_val = request.cookies.get("refresh_token")
+    if not refresh_token_val:
+        raise credentials_exception
+        
     try:
-        payload = decode_token(request.refresh_token)
+        payload = decode_token(refresh_token_val)
         
         # Проверяем тип токена
         if payload.get("type") != "refresh":
@@ -187,11 +217,28 @@ async def refresh_token(
     access_token = create_access_token(user_id=user.id, role=role_value)
     new_refresh_token = create_refresh_token(user_id=user.id, remember_me=False)
     
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        max_age=30 * 24 * 60 * 60,
+        secure=True, 
+        samesite="lax"
+    )
+    
     return TokenResponse(
         access_token=access_token,
-        refresh_token=new_refresh_token,
         token_type="bearer",
     )
+
+@router.post(
+    "/logout",
+    summary="Выход из системы",
+    description="Удаляет refresh token из кук.",
+)
+async def logout(response: Response):
+    response.delete_cookie("refresh_token")
+    return {"status": "success", "message": "Logged out successfully"}
 
 
 @router.get(

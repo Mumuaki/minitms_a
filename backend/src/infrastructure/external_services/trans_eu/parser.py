@@ -88,6 +88,9 @@ def get_extraction_script() -> str:
             const ratingEl = row.querySelector('[data-ctx="rating"]');
             const companyRating = ratingEl ? ratingEl.innerText.trim() : null;
 
+            const publishedAtEl = row.querySelector('[data-ctx="publication-time"]') || row.querySelector('[class*="publishedAt"]');
+            const publishedAt = publishedAtEl ? publishedAtEl.innerText.trim() : null;
+
             // 7. IDs
             const externalId = row.getAttribute("data-ctx-id") || row.getAttribute("data-freightid") || row.getAttribute("id");
 
@@ -101,6 +104,7 @@ def get_extraction_script() -> str:
                 distance_raw: distance,
                 company_name: companyName,
                 company_rating_raw: companyRating,
+                published_at_raw: publishedAt,
                 external_id: externalId
             });
         });

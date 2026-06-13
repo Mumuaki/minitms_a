@@ -5,7 +5,8 @@ Cargo Endpoints — REST API для работы с грузами.
 - GET /cargos/search — поиск грузов с фильтрами
 """
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import date
@@ -44,13 +45,129 @@ def get_filter_by_vehicle_use_case(repo: CargoRepository = Depends(get_cargo_rep
     """Dependency для получения use case фильтрации по ТС."""
     return FilterByVehicleUseCase(repo)
 
+def get_vehicle_repository(db: Session = Depends(get_db)):
+    from backend.src.infrastructure.persistence.sqlalchemy.repositories.vehicle_repository_impl import VehicleRepositoryImpl
+    return VehicleRepositoryImpl(db)
+
+def get_scrape_cargo_use_case(
+    cargo_repo: CargoRepository = Depends(get_cargo_repository),
+    vehicle_repo = Depends(get_vehicle_repository)
+):
+    from backend.src.infrastructure.external_services.gps.mock_gps_service import MockGpsService
+    from backend.src.infrastructure.external_services.trans_eu.trans_eu_scraper_adapter import TransEuScraperAdapter
+    from backend.src.application.use_cases.cargo.scrape_cargos import ScrapeCargoUseCase
+    return ScrapeCargoUseCase(
+        vehicle_repository=vehicle_repo,
+        gps_service=MockGpsService(),
+        scraper_port=TransEuScraperAdapter(),
+        cargo_repository=cargo_repo
+    )
+
+def get_search_by_vehicle_use_case(
+    vehicle_repo = Depends(get_vehicle_repository)
+):
+    from backend.src.infrastructure.external_services.trans_eu.trans_eu_scraper_adapter import TransEuScraperAdapter
+    from backend.src.application.use_cases.cargo.search_cargos_by_vehicle import SearchCargoByVehicleUseCase
+    return SearchCargoByVehicleUseCase(
+        vehicle_repo=vehicle_repo,
+        scraper_port=TransEuScraperAdapter()
+    )
+
 
 # ============================================================================
 # ENDPOINTS
 # ============================================================================
 
-@router.get(
+class SearchCargoTriggerRequest(BaseModel):
+    vehicle_id: str
+    radius: Optional[int] = 50
+
+class JobResponse(BaseModel):
+    job_id: str
+    message: str
+
+class JobStatusResponse(BaseModel):
+    job_id: str
+    status: str
+    result: Optional[int] = None
+    error: Optional[str] = None
+
+@router.post(
     "/search",
+    summary="Запуск процесса парсинга (Scraping Task)",
+    description="Инициирует асинхронный поиск грузов на Trans.eu для указанного ТС (Celery).",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=JobResponse
+)
+async def trigger_cargo_search(
+    request: SearchCargoTriggerRequest
+):
+    """
+    Триггер для асинхронного запуска задачи скрапинга.
+    """
+    from backend.src.application.tasks.scraping_tasks import scrape_cargos_task
+    
+    try:
+        task = scrape_cargos_task.delay(
+            vehicle_id=request.vehicle_id,
+            radius=request.radius or 75
+        )
+        return JobResponse(job_id=task.id, message="Scraping task accepted")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get(
+    "/search/status/{job_id}",
+    summary="Проверка статуса парсинга",
+    description="Возвращает текущий статус Celery-задачи (PENDING, STARTED, WAITING_CAPTCHA, SUCCESS, FAILURE, RETRY).",
+    response_model=JobStatusResponse
+)
+async def get_cargo_search_status(job_id: str):
+    from backend.src.infrastructure.messaging.celery_app import celery_app
+    from celery.result import AsyncResult
+    
+    task_result = AsyncResult(job_id, app=celery_app)
+    
+    response = JobStatusResponse(job_id=job_id, status=task_result.status)
+    
+    if task_result.status == 'SUCCESS':
+        response.result = task_result.result
+    elif task_result.status == 'FAILURE':
+        response.error = str(task_result.result)
+    elif task_result.status == 'WAITING_CAPTCHA':
+        meta = task_result.info or {}
+        response.error = meta.get('exc_message', 'Captcha required')
+        
+    return response
+
+@router.post(
+    "/search-by-vehicle/{vehicle_id}",
+    summary="Поиск предложений по ТС",
+    description="Инициирует прямой поиск грузов на Trans.eu для указанного ТС (используя его локацию и параметры).",
+    status_code=status.HTTP_200_OK
+)
+async def search_by_vehicle(
+    vehicle_id: str,
+    radius: Optional[int] = 75,
+    use_case = Depends(get_search_by_vehicle_use_case)
+):
+    """
+    Запуск поиска (скрапинга) для конкретного транспортного средства.
+    Ожидайте задержку 30-45 секунд.
+    """
+    try:
+        result = await use_case.execute(
+            vehicle_id=vehicle_id,
+            loading_radius=radius
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get(
+    "/",
     response_model=SearchCargoResponse,
     responses={400: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
     summary="Поиск грузов",
