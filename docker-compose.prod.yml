@@ -92,6 +92,8 @@ services:
       - ./backend/.env
     volumes:
       - ./alembic.ini:/workspace/alembic.ini:ro
+      - ./backend/src/infrastructure/external_services/gps/gps_service_impl.py:/workspace/backend/src/infrastructure/external_services/gps/gps_service_impl.py:ro
+      - ./backend/src/infrastructure/persistence/migrations/versions/2026_06_13_d8f2b1a3c4e5_add_default_users.py:/workspace/backend/src/infrastructure/persistence/migrations/versions/2026_06_13_d8f2b1a3c4e5_add_default_users.py:ro
     entrypoint: [ "/bin/bash", "entrypoint_core.sh" ]
     depends_on:
       postgres:
@@ -174,13 +176,14 @@ services:
       - "127.0.0.1:6080:6080"
     volumes:
       - browser_profile:/workspace/browser_profile
+      - ./backend/src/infrastructure/external_services/gps/gps_service_impl.py:/workspace/backend/src/infrastructure/external_services/gps/gps_service_impl.py:ro
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - minitms-network
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://localhost:8003/health || exit 1" ]
+      test: [ "CMD-SHELL", "pgrep -f 'celery.*-[Q] scraping' > /dev/null || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -226,6 +229,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile.service
     container_name: minitms-celery-worker
+    volumes:
+      - ./backend/src/infrastructure/external_services/gps/gps_service_impl.py:/workspace/backend/src/infrastructure/external_services/gps/gps_service_impl.py:ro
     restart: unless-stopped
     env_file:
       - ./backend/.env
@@ -249,6 +254,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile.service
     container_name: minitms-celery-beat
+    volumes:
+      - ./backend/src/infrastructure/external_services/gps/gps_service_impl.py:/workspace/backend/src/infrastructure/external_services/gps/gps_service_impl.py:ro
     restart: unless-stopped
     env_file:
       - ./backend/.env

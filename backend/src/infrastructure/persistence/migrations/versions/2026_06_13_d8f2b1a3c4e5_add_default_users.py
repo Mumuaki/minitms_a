@@ -21,13 +21,14 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Динамический импорт хэшера паролей, так как он доступен в контексте выполнения Alembic
     try:
-        from backend.src.infrastructure.security.password_hasher import get_password_hash
+        from backend.src.infrastructure.security.password_hasher import hash_password as get_password_hash
     except ImportError:
         # Fallback, если запускается вне полного контекста приложения
         def get_password_hash(password: str) -> str:
-            from passlib.context import CryptContext
-            pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-            return pwd_context.hash(password)
+            import bcrypt
+            # passlib 1.7.4 is incompatible with bcrypt>=4.1; use bcrypt directly
+            pwd_bytes = password.encode("utf-8")[:72]
+            return bcrypt.hashpw(pwd_bytes, bcrypt.gensalt(rounds=12)).decode("utf-8")
 
     users_table = table('users',
         column('email', sa.String),
