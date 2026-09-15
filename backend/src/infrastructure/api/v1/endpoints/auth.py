@@ -70,33 +70,9 @@ async def login(
     Принимает форму OAuth2 (username = email, password).
     Возвращает пару JWT токенов.
     """
-    # #region agent log
-    import traceback
-    import json
-    _log_path = "/app/.cursor/debug.log"
-    try:
-        import os
-        _alt = os.path.join(os.path.dirname(__file__), "../../../../../.cursor/debug.log")
-        if os.path.exists(os.path.dirname(_alt)) or os.path.exists("d:/MiniTMS/.cursor"):
-            _log_path = "d:/MiniTMS/.cursor/debug.log" if os.name == "nt" else _alt
-    except Exception:
-        pass
-    def _agent_log(msg: str, data: dict, h: str):
-        try:
-            import os
-            _d = os.path.dirname(_log_path)
-            if _d:
-                os.makedirs(_d, exist_ok=True)
-            with open(_log_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps({"location": "auth.py:login", "message": msg, "data": data, "hypothesisId": h, "timestamp": __import__("time").time() * 1000}) + "\n")
-        except Exception:
-            pass
-    _agent_log("login_start", {"username_len": len(form_data.username or ""), "password_len": len(form_data.password or "")}, "A")
-    # #endregion
     try:
         # Получаем пользователя по email (username в OAuth2 форме)
         user = user_repo.get_by_email(form_data.username)
-        _agent_log("get_by_email_done", {"user_found": user is not None, "user_id": user.id if user else None}, "A")
     
         if user is None:
             raise HTTPException(
@@ -105,7 +81,6 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
     
-        _agent_log("verify_active", {"is_active": user.is_active}, "B")
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -120,7 +95,6 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
     
-        _agent_log("verify_password_start", {}, "B")
         if not verify_password(form_data.password, user.password_hash):
             user.increment_failed_attempts()
             if user.failed_login_attempts >= 5:
@@ -137,10 +111,8 @@ async def login(
         user_repo.save(user)
     
         role_value = user.role.value if hasattr(user.role, 'value') else user.role
-        _agent_log("create_tokens_start", {"role_value": str(role_value)}, "C")
         access_token = create_access_token(user_id=user.id, role=role_value)
         refresh_token_val = create_refresh_token(user_id=user.id, remember_me=False)
-        _agent_log("create_tokens_done", {}, "C")
         
         # Устанавливаем refresh token в httpOnly cookie
         response.set_cookie(
@@ -159,7 +131,6 @@ async def login(
     except HTTPException:
         raise
     except Exception as e:
-        _agent_log("login_exception", {"error": str(e), "type": type(e).__name__, "traceback": traceback.format_exc()}, "E")
         raise
 
 

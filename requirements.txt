@@ -13,7 +13,7 @@ psycopg2-binary>=2.9.9      # Синхронный драйвер (нужен д
 
 # --- Authentication & Security (Module 1) ---
 python-jose[cryptography]>=3.3.0 # Работа с JWT токенами (login/auth)
-passlib[bcrypt]>=1.7.4      # Хеширование паролей пользователей
+bcrypt>=4.0.1      # Хеширование паролей пользователей
 python-multipart>=0.0.6     # Парсинг форм (нужен для OAuth2 login endpoint)
 
 # --- Scraping & Browser Automation (Module 3 - Trans.eu) ---

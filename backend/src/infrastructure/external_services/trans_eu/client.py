@@ -2,7 +2,6 @@ import asyncio
 from playwright.async_api import async_playwright, BrowserContext, Page, Playwright
 import logging
 import os
-import json
 import time
 from backend.src.infrastructure.config.settings import settings
 
@@ -12,15 +11,6 @@ logger = logging.getLogger(__name__)
 _trans_eu_client_instance = None
 _trans_eu_client_lock = None
 
-# #region agent log
-_DBG_LOG = "/tmp/debug-73ed43.log"
-def _dbg(msg, data=None, hyp=""):
-    try:
-        entry = {"sessionId":"73ed43","timestamp":int(time.time()*1000),"location":"client.py","message":msg,"hypothesisId":hyp}
-        if data is not None: entry["data"] = data
-        with open(_DBG_LOG, "a") as f: f.write(json.dumps(entry)+"\n")
-    except: pass
-# #endregion
 
 class TransEuClient:
     """
@@ -174,9 +164,6 @@ class TransEuClient:
             self.page = self.context.pages[0]
         else:
             self.page = await self.context.new_page()
-        # #region agent log
-        _dbg("start() browser launched OK", {"pages_count": len(self.context.pages)}, "H-B")
-        # #endregion
 
     async def stop(self):
         """
@@ -310,22 +297,13 @@ class TransEuClient:
         Шаг 4: Дождаться редиректа на /trans-info (LOGIN_FAILED если не произошло).
         Шаг 5: Нажать «Поиск грузов» в левом меню → дождаться /exchange/offers.
         """
-        # #region agent log
-        _dbg("login() called", {"username": settings.TRANS_EU_USERNAME[:3]+"***" if settings.TRANS_EU_USERNAME else "(empty)", "has_password": bool(settings.TRANS_EU_PASSWORD)}, "H-E")
-        # #endregion
         if not settings.TRANS_EU_USERNAME or not settings.TRANS_EU_PASSWORD:
             logger.error("Trans.eu credentials are missing settings.")
-            # #region agent log
-            _dbg("login() ABORT: credentials missing", {}, "H-E")
-            # #endregion
             return False
 
         try:
             current_url = self.page.url
             logger.info(f"login() — Шаг 0: проверка состояния. Текущий URL: {current_url}")
-            # #region agent log
-            _dbg("login() step0 check", {"current_url": current_url}, "H-C")
-            # #endregion
 
             # Если мы запускаемся в первый раз и URL пустой (about:blank), сначала переходим на стартовый URL,
             # чтобы браузер применил сохраненные куки и мы узнали реальный статус авторизации.
@@ -374,18 +352,12 @@ class TransEuClient:
             if "auth.platform.trans.eu" not in current_url and "/login" not in current_url:
                 START_URL = "https://platform.trans.eu"
                 logger.info(f"Шаг 1: goto {START_URL}")
-                # #region agent log
-                _dbg("login() step1 goto START_URL", {"url": START_URL}, "H-C")
-                # #endregion
                 await self.page.goto(START_URL, timeout=60000)
                 await self.page.wait_for_timeout(3000)
                 logger.info(f"После goto START_URL, текущий URL: {self.page.url}")
 
             # --- Шаг 2: Ожидание полей и заполнение ---
             logger.info("Шаг 2: Ожидание поля ввода логина")
-            # #region agent log
-            _dbg("login() step2 waiting for login field", {"url": self.page.url}, "H-D")
-            # #endregion
             
             login_selector = 'input[name="login"]'
             password_selector = 'input[name="password"]'
@@ -410,30 +382,18 @@ class TransEuClient:
 
             # --- Шаг 3: Нажать кнопку «Вход» ---
             logger.info("Шаг 3: Нажимаю button[type='submit'] (кнопка «Вход»)")
-            # #region agent log
-            _dbg("login() step3 clicking submit", {}, "H-D")
-            # #endregion
             await self.page.click('button[type="submit"]')
 
             # --- Шаг 4: Ожидание редиректа на /trans-info ---
             logger.info("Шаг 4: Ожидание редиректа на /trans-info (timeout=30s)")
-            # #region agent log
-            _dbg("login() step4 waiting for trans-info", {}, "H-D")
-            # #endregion
             try:
                 await self.page.wait_for_url("**/trans-info**", timeout=30000)
                 logger.info(f"Шаг 4: Успешный вход. Текущий URL: {self.page.url}")
-                # #region agent log
-                _dbg("login() step4 trans-info reached", {"url": self.page.url}, "H-D")
-                # #endregion
             except Exception as wait_err:
                 if await self._wait_for_cloudflare_if_present():
                     await self.page.wait_for_url("**/trans-info**", timeout=30000)
                 else:
                     logger.error(f"LOGIN_FAILED: Редирект на /trans-info не произошёл. URL: {self.page.url}")
-                    # #region agent log
-                    _dbg("login() LOGIN_FAILED step4", {"error": str(wait_err), "url": self.page.url}, "H-D")
-                    # #endregion
                     await self.page.screenshot(path="/tmp/debug_login_failed.png")
                     return False
 
@@ -442,9 +402,6 @@ class TransEuClient:
 
         except Exception as e:
             logger.error(f"Login/Navigation failed: {str(e)}")
-            # #region agent log
-            _dbg("login() EXCEPTION", {"error": str(e), "url": self.page.url if self.page else "no-page"}, "H-C,H-D")
-            # #endregion
             try:
                 await self.page.screenshot(path="/tmp/debug_login_failed.png")
             except: pass
@@ -459,9 +416,6 @@ class TransEuClient:
         try:
             await self._wait_for_cloudflare_if_present()
             logger.info("Шаг 5: Ожидание ссылки «Поиск грузов» (a[href*='/exchange/offers'])")
-            # #region agent log
-            _dbg("_navigate_to_offers_via_menu() waiting for menu link", {"url": self.page.url}, "H-C")
-            # #endregion
             await self.page.wait_for_selector('a[href*="/exchange/offers"]', timeout=15000)
             
             # --- Вариант 1: Попытка закрыть модальное окно, если оно перекрывает интерфейс ---
@@ -506,15 +460,9 @@ class TransEuClient:
                     raise url_err
 
             logger.info(f"Шаг 5: Открыта страница поиска. URL: {self.page.url}")
-            # #region agent log
-            _dbg("_navigate_to_offers_via_menu() success", {"url": self.page.url}, "H-C")
-            # #endregion
             return True
         except Exception as e:
             logger.error(f"Шаг 5: Не удалось перейти на /exchange/offers через меню: {e}")
-            # #region agent log
-            _dbg("_navigate_to_offers_via_menu() FAILED", {"error": str(e), "url": self.page.url}, "H-C")
-            # #endregion
             await self.page.screenshot(path="/tmp/debug_menu_navigation_failed.png")
             return False
 
