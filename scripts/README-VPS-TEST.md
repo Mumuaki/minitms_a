@@ -97,8 +97,10 @@ GPS_DOZOR_PASSWORD=ваш-пароль
 
 ```bash
 # На сервере:
+# Задайте пароль администратора (см. /root/minitms-new-credentials-*.txt)
+ADMIN_PASSWORD_=<пароль администратора>
 TOKEN=$(curl -s http://localhost:8000/api/v1/auth/login \
-  -X POST -d "username=admin@minitms.local&password=admin123" \
+  -X POST -d "username=admin@minitms.local&password=$ADMIN_PASSWORD_" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/gps/status

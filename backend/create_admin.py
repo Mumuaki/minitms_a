@@ -18,7 +18,7 @@ load_dotenv(env_path)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@minitms.local")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+ADMIN_PASSWORD = (os.getenv("ADMIN_PASSWORD") or "").strip()
 
 if not DATABASE_URL:
     logger.error("DATABASE_URL not found in .env")
@@ -63,6 +63,14 @@ try:
                 sys.exit(0)
             else:
                 logger.info(f"Users exist ({count}), but admin '{ADMIN_EMAIL}' is missing.")
+
+        if not ADMIN_PASSWORD:
+            logger.warning(
+                "ADMIN_PASSWORD is not set - refusing to create %s with a default password. "
+                "Set ADMIN_PASSWORD in the environment to seed this account.",
+                ADMIN_EMAIL,
+            )
+            sys.exit(0)
 
         password_hash = hash_password(ADMIN_PASSWORD)
         conn.execute(text("""

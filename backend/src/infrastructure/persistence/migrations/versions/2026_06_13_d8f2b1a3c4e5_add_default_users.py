@@ -5,6 +5,7 @@ Revises: c8d2f3e4a5b6
 Create Date: 2026-06-13 21:24:00.000000
 
 """
+import os
 from typing import Sequence, Union
 
 from alembic import op
@@ -40,38 +41,39 @@ def upgrade() -> None:
         column('failed_login_attempts', sa.Integer)
     )
 
-    op.bulk_insert(
-        users_table,
-        [
-            {
-                'email': 'admin@minitms.com',
-                'username': 'Admin User',
-                'password_hash': get_password_hash('admin123'),
-                'role': 'administrator',
-                'language': 'ru',
-                'is_active': True,
-                'failed_login_attempts': 0
-            },
-            {
-                'email': 'director@minitms.com',
-                'username': 'Director User',
-                'password_hash': get_password_hash('director123'),
-                'role': 'director',
-                'language': 'ru',
-                'is_active': True,
-                'failed_login_attempts': 0
-            },
-            {
-                'email': 'dispatcher@minitms.com',
-                'username': 'Dispatcher User',
-                'password_hash': get_password_hash('dispatcher123'),
-                'role': 'dispatcher',
-                'language': 'ru',
-                'is_active': True,
-                'failed_login_attempts': 0
-            }
-        ]
-    )
+    # Passwords MUST come from the environment. This file is public, so a
+    # hardcoded seed password would hand out production admin access.
+    seed_specs = [
+        ('admin@minitms.com', 'Admin User', 'administrator', 'SEED_ADMIN_PASSWORD'),
+        ('director@minitms.com', 'Director User', 'director', 'SEED_DIRECTOR_PASSWORD'),
+        ('dispatcher@minitms.com', 'Dispatcher User', 'dispatcher', 'SEED_DISPATCHER_PASSWORD'),
+    ]
+
+    rows = []
+    missing = []
+    for email, username, role, env_key in seed_specs:
+        password = (os.getenv(env_key) or '').strip()
+        if not password:
+            missing.append(env_key)
+            continue
+        rows.append({
+            'email': email,
+            'username': username,
+            'password_hash': get_password_hash(password),
+            'role': role,
+            'language': 'ru',
+            'is_active': True,
+            'failed_login_attempts': 0,
+        })
+
+    if missing:
+        print('[d8f2b1a3c4e5] no password set for: ' + ', '.join(missing) + ' - those users are skipped')
+    if not rows:
+        print('[d8f2b1a3c4e5] no SEED_*_PASSWORD variables set - no default users created. '
+              'Set them, or use create_admin.py, if initial accounts are needed.')
+        return
+
+    op.bulk_insert(users_table, rows)
 
 
 def downgrade() -> None:

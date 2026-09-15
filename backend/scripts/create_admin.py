@@ -43,7 +43,13 @@ try:
         # Создаём администратора
         print("\nСоздание пользователя admin@minitms.local...")
         
-        password_hash = hash_password("admin123")
+        admin_password = (os.getenv("ADMIN_PASSWORD") or "").strip()
+        if not admin_password:
+            print("\n❌ ADMIN_PASSWORD не задан — отказываюсь создавать администратора с паролем по умолчанию.")
+            print("   Задайте ADMIN_PASSWORD в окружении и запустите снова.")
+            sys.exit(1)
+
+        password_hash = hash_password(admin_password)
         
         conn.execute(text("""
             INSERT INTO users (
@@ -66,7 +72,7 @@ try:
         print()
         print("Данные для входа:")
         print("  Email: admin@minitms.local")
-        print("  Password: admin123")
+        print("  Password: (значение переменной ADMIN_PASSWORD)")
         print()
         print("⚠️  ВАЖНО: Смените пароль после первого входа!")
         

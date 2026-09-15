@@ -1,14 +1,13 @@
 #!/bin/bash
+# Создаёт первого администратора.
+# Пароль НИКОГДА не хранится в репозитории — задайте его в переменной окружения.
+#
+#   ADMIN_PASSWORD='...' ./create_admin.sh
+#
 set -e
-# Генерируем bcrypt-хэш для пароля admin123
-HASH=$(docker exec minitms-backend python3 -c "import bcrypt; h=bcrypt.hashpw(b'admin123',bcrypt.gensalt(12)).decode(); print(h)")
-echo "Hash generated: $HASH"
 
-# Вставляем пользователя в БД через контейнер postgres
-docker exec postgres psql -U admin -d minitms -c "
-INSERT INTO users (email, username, password_hash, role, language, is_active, failed_login_attempts)
-VALUES ('admin@minitms.local', 'Admin', '$HASH', 'administrator', 'ru', true, 0)
-ON CONFLICT (email) DO NOTHING;
-"
-echo "INSERT_DONE"
-docker exec postgres psql -U admin -d minitms -c "SELECT id, email, role FROM users;"
+: "${ADMIN_PASSWORD:?Задайте ADMIN_PASSWORD (пароль администратора)}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@minitms.local}"
+
+docker exec -e ADMIN_PASSWORD="$ADMIN_PASSWORD" -e ADMIN_EMAIL="$ADMIN_EMAIL" \
+  minitms-core-api python3 create_admin.py
