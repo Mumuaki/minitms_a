@@ -95,6 +95,74 @@ async def create_user(
     )
 
 
+@router.put("/{user_id}", response_model=UserResponse, summary="Обновить пользователя")
+async def update_user(
+    user_id: int,
+    user_in: UserUpdate,
+    user_repo: UserRepository = Depends(get_user_repository),
+    current_user: CurrentUser = Depends(require_role(["administrator"]))
+):
+    """
+    Обновление данных пользователя.
+    Доступно только Администраторам.
+    """
+    user = user_repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Email меняем только если он реально изменился, и следим за уникальностью
+    if user_in.email is not None and user_in.email.lower() != user.email.lower():
+        existing = user_repo.get_by_email(user_in.email)
+        if existing and existing.id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User with this email already exists"
+            )
+        user.email = user_in.email.lower()
+
+    if user_in.username is not None:
+        user.username = user_in.username
+
+    if user_in.role is not None:
+        try:
+            user.role = UserRole(user_in.role.lower())
+        except ValueError:
+            allowed = [e.value for e in UserRole]
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid role. Allowed roles: {allowed}"
+            )
+
+    if user_in.language is not None:
+        user.language = user_in.language
+
+    if user_in.is_active is not None:
+        # Не позволяем администратору заблокировать самого себя
+        if user.id == current_user.id and user_in.is_active is False:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot deactivate yourself"
+            )
+        user.is_active = user_in.is_active
+
+    if user_in.password:
+        user.password_hash = hash_password(user_in.password)
+
+    updated = user_repo.save(user)
+
+    return UserResponse(
+        id=updated.id,
+        email=updated.email,
+        username=updated.username,
+        role=updated.role.value if hasattr(updated.role, 'value') else updated.role,
+        language=updated.language,
+        is_active=updated.is_active
+    )
+
+
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Удалить пользователя")
 async def delete_user(
     user_id: int,
