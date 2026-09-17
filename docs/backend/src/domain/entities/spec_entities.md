@@ -34,7 +34,7 @@
         * `height`: Float (м)
     * `capacity_weight`: Integer (кг)
     * `status`: Enum (`AVAILABLE`, `IN_TRANSIT`, `MAINTENANCE`, `UNAVAILABLE`) 
-    * `gps_tracker_id`: String (ID внешнего трекера Wialon/Navixy)
+    * `gps_tracker_id`: String (ID внешнего трекера GPS Guard)
     * `current_position_id`: Link -> `VehiclePosition` (последняя известная позиция)
 
 ### 2.3. VehiclePosition (GPS Позиция)

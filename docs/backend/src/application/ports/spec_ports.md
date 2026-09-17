@@ -49,7 +49,7 @@
 * `reverseGeocode(lat: Float, lon: Float): Location` — Получение адреса по координатам (для GPS).
 
 #### `GpsServicePort`
-Интеграция с Wialon/Navixy.
+Интеграция с GPS Guard.
 * `getCurrentCoordinates(vehicleId: String): LocationDto` — Получение текущей точки (lat/lon).
 * `getDailyMileage(vehicleId: String, date: Date): Float` — Расчет пробега за сутки (одометр 23:59 - 00:00).
 
@@ -57,7 +57,7 @@
 Интеграция с таблицами.
 * `appendRow(spreadsheetId: String, row: OrderSheetRowDto): void` — Добавление новой строки заказа.
 * `updateRow(spreadsheetId: String, rowNumber: Int, data: Partial<OrderSheetRowDto>): void`
-* `ensureHeaderStructure(spreadsheetId: String): void` — Проверка наличия 24 столбцов.
+* `ensureHeaderStructure(spreadsheetId: String): void` — Проверка наличия 25 столбцов.
 
 #### `NotificationPort`
 Отправка уведомлений.

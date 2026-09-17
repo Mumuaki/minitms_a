@@ -18,7 +18,7 @@
 * **Actor:** Dispatcher (Manual) или System (GPS API Integration).
 * **Scenario A: Manual/Force Update**
     1. Пользователь нажимает "Обновить местоположение".
-    2. Система запрашивает API GPS-провайдера (Wialon/Navixy).
+    2. Система запрашивает API GPS-провайдера (GPS Guard).
     3. Получает координаты (`lat`, `lon`).
     4. Выполняет Reverse Geocoding (через OSM/Nominatim) -> `Place Name`, `Country`.
     5. Сохраняет в `VehiclePosition` с `timestamp`.

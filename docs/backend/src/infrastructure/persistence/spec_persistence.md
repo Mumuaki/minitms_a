@@ -4,7 +4,7 @@
 # РЎРїРµС†РёС„РёРєР°С†РёСЏ СЃР»РѕСЏ С…СЂР°РЅРµРЅРёСЏ РґР°РЅРЅС‹С… (Persistence Layer)
 
 **РЎРЈР‘Р”:** PostgreSQL 15+
-**ORM/Query Builder:** TypeORM / Prisma (РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РІС‹Р±РѕСЂР° СЃС‚РµРєР° Node.js)
+**ORM/Query Builder:** SQLAlchemy + Alembic (Python)
 **РљСЌС€РёСЂРѕРІР°РЅРёРµ:** Redis (РґР»СЏ СЃРµСЃСЃРёР№ Рё СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РїР°СЂСЃРёРЅРіР°)
 
 ## 1. ER-РґРёР°РіСЂР°РјРјР° Рё РЎС…РµРјР° Р‘Р”
@@ -15,7 +15,7 @@
 * `id`: UUID (PK)
 * `email`: VARCHAR(255) (Unique)
 * `password_hash`: VARCHAR (bcrypt)
-* `role`: ENUM ('Administrator', 'Director', 'Dispatcher', 'Observer')
+* `role`: ENUM ('Administrator', 'Director', 'Dispatcher', 'Guest')
 * `settings`: JSONB (РќР°СЃС‚СЂРѕР№РєРё РёРЅС‚РµСЂС„РµР№СЃР°, С„РёР»СЊС‚СЂС‹ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ, СЏР·С‹Рє)
 * `trans_eu_credentials`: JSONB (Encrypted) - Р›РѕРіРёРЅ/РїР°СЂРѕР»СЊ РґР»СЏ РїР°СЂСЃРµСЂР°.
 
@@ -28,7 +28,7 @@
 * `dims_w`: DECIMAL (РЁРёСЂРёРЅР°, Рј)
 * `dims_h`: DECIMAL (Р’С‹СЃРѕС‚Р°, Рј)
 * `payload_kg`: INTEGER
-* `gps_tracker_id`: VARCHAR (ID РІ СЃРёСЃС‚РµРјРµ Wialon/Navixy).
+* `gps_tracker_id`: VARCHAR (ID РІ СЃРёСЃС‚РµРјРµ GPS Guard).
 
 ### 1.3 VehiclePositions (РСЃС‚РѕСЂРёСЏ GPS)
 РўР°Р±Р»РёС†Р° `vehicle_positions`

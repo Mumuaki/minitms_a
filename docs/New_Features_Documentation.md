@@ -27,7 +27,7 @@ GET /api/v1/cargos/search
 - `unloading_date_from`: Начальная дата выгрузки (YYYY-MM-DD)
 - `unloading_date_to`: Конечная дата выгрузки (YYYY-MM-DD)
 - `weight_min`: Минимальный вес (т)
-- `weight_max`: Максимальный вес (т)
+- `weight_max`: Максимальный вес (кг)
 - `body_type`: Тип кузова
 - `price_min`: Минимальная цена (€)
 - `price_max`: Максимальная цена (€)
@@ -120,7 +120,7 @@ GET /api/v1/cargos/search?weight_min=5&price_min=1000&body_type=Refrigerator&fue
 ### Формула расчета
 Рентабельность рассчитывается по следующей формуле:
 ```
-rate_per_km = (cargo_price - total_cost) / total_distance
+rate_per_km = cargo_price / total_distance
 ```
 
 Где:

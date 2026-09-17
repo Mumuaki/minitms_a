@@ -24,7 +24,7 @@
 1. **Administrator:** Полный доступ, управление пользователями.
 2. **Director:** Полный доступ к бизнесу, нет доступа к администрированию пользователей.
 3. **Dispatcher:** Операционная работа: грузы, флот, email. Ограничен в финансах.
-4. **Observer:** Только просмотр отчетов и статусов.
+4. **Guest:** Только просмотр отчетов и статусов.
 
 ## 3. Архитектура UI компонентов
 
@@ -59,14 +59,14 @@
 Компонент для условного рендеринга частей интерфейса.
 * **Props:** `allowedRoles: UserRole[]`.
 * **Логика:** Сравнивает роль текущего пользователя (`user.role`) с массивом `allowedRoles`.
-* **Пример использования:** Скрытие кнопки "Настройки" для ролей Dispatcher и Observer.
+* **Пример использования:** Скрытие кнопки "Настройки" для ролей Dispatcher и Guest.
 
 ## 4. State Management (Redux Slice)
 Используется `authSlice` для хранения глобального состояния аутентификации.
 
 ```typescript
 // Types
-type UserRole = 'Administrator' | 'Director' | 'Dispatcher' | 'Observer';
+type UserRole = 'Administrator' | 'Director' | 'Dispatcher' | 'Guest';
 
 interface User {
   id: string;
@@ -130,7 +130,7 @@ const initialState: AuthState = {
 ### 6.2 Матрица доступа (Frontend Enforcement)
 Реализация логики скрытия элементов UI на основе требований.
 
-| Раздел UI / Функция | Administrator | Director | Dispatcher | Observer |
+| Раздел UI / Функция | Administrator | Director | Dispatcher | Guest |
 | :--- | :---: | :---: | :---: | :---: |
 | Settings (Настройки) | ✅ | ✅ | ❌ | ❌ |
 | Fleet (Редактирование) | ✅ | ✅ | ✅ | ❌ |

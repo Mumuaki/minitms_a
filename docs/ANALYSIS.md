@@ -71,7 +71,7 @@
 - **OpenStreetMap (OSRM)** - маршрутизация и расчет расстояний
 - **Nominatim** - геокодирование
 - **Google Sheets API** - синхронизация данных
-- **GPS-платформы** - Wialon, GPS-Trace, Navixy
+- **GPS-платформы** - GPS Guard (основная), Wialon, GPS-Trace, Navixy
 
 ## 8. Ключевые метрики эффективности
 

@@ -35,7 +35,7 @@
 | FR-UI-008 | Cargo Search | AT-UI-008, IT-CONTRACTOR-RATING-001, E2E-RATING-FILTER-001 | Acceptance+Integration+E2E | Covered |
 | FR-UI-009 | Cargo Search, Profitability | AT-UI-009, IT-EXCLUSION-001, E2E-EXCLUSION-001 | Acceptance+Integration+E2E | Covered |
 | FR-NOTIFY-001 | Email/Notification | AT-NOTIFY-001, IT-PUSH-001, E2E-NOTIFY-001 | Acceptance+Integration+E2E | Covered |
-| FR-NOTIFY-002 | Email/Notification | AT-NOTIFY-002, IT-TELEGRAM-001, E2E-TELEGRAM-001 | Acceptance+Integration+E2E | Covered |
+| FR-NOTIFY-002 | Email/Notification | AT-NOTIFY-002, IT-TELEGRAM-001, E2E-TELEGRAM-001 | Acceptance+Integration+E2E | Deferred |
 | FR-NOTIFY-003 | Email/Notification, Settings | AT-NOTIFY-003, IT-NOTIFY-PREF-001, E2E-NOTIFY-PREF-001 | Acceptance+Integration+E2E | Covered |
 | FR-NOTIFY-004 | Email/Notification | AT-NOTIFY-004, IT-NOTIFY-RATE-001, E2E-NOTIFY-RATE-001 | Acceptance+Integration+E2E | Covered |
 | FR-SETTINGS-001 | Settings, Cargo Ingestion | AT-SETTINGS-001, IT-TRANS-CRED-001, SEC-CRED-001 | Acceptance+Integration+Security | Covered |

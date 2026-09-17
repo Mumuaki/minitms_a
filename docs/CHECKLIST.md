@@ -72,7 +72,7 @@ EMAIL_FROM=your_email@gmail.com
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
 
-# Telegram (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)
+# Telegram (отложено, см. PROJECT-CONFIG.md)
 TELEGRAM_BOT_TOKEN=your_bot_token
 ```
 

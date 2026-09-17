@@ -7,13 +7,7 @@ Source specs:
 
 Validation artifacts:
 - pytest markers `@pytest.mark.requirement_id("...")` in `tests/` and `backend/tests/`
-- phase traceability and contracts:
-  - `phases/phase-1-desktop-mvp/test-contract.md`
-  - `phases/phase-2-web/traceability.md`
-  - `phases/phase-2-web/test-contract.md`
-  - `phases/phase-3-mobile/traceability.md`
-  - `phases/phase-3-mobile/test-contract.md`
-
+- 
 ## Executive Summary
 
 | Metric | Value |
