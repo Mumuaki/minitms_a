@@ -167,6 +167,12 @@ async def search_by_vehicle(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get(
+    "/search",
+    response_model=SearchCargoResponse,
+    summary="Поиск грузов (расширенный)",
+    description="Алиас GET /cargos/ — совместимость с фронтендом (LoadsPage) и New_Features_Documentation.",
+)
+@router.get(
     "/",
     response_model=SearchCargoResponse,
     responses={400: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
