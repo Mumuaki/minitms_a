@@ -1,6 +1,6 @@
 """
 main_core.py — точка входа для сервиса Core API.
-Роутеры: auth, users, fleet, vehicles.
+Роутеры: auth, users, fleet, vehicles, reports.
 Порт: 8001
 """
 
@@ -16,6 +16,7 @@ from backend.src.infrastructure.api.v1.endpoints import (
     users,
     fleet,
     vehicles,
+    reports,
 )
 
 app = FastAPI(
@@ -56,6 +57,7 @@ app.include_router(auth.router, prefix=api_v1_prefix)
 app.include_router(users.router, prefix=api_v1_prefix)
 app.include_router(fleet.router, prefix=api_v1_prefix)
 app.include_router(vehicles.router, prefix=api_v1_prefix)
+app.include_router(reports.router, prefix=api_v1_prefix)
 
 
 @app.get("/health", tags=["System"])
