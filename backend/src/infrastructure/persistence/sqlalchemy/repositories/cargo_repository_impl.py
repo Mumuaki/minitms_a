@@ -1,5 +1,5 @@
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, asc
 from sqlalchemy.dialects.postgresql import insert
@@ -150,10 +150,14 @@ class CargoRepositoryImpl(CargoRepository):
         return self._model_to_dto(cargo) if cargo else None
 
     def create(self, cargo_dto: CargoDto) -> CargoDto:
-        raise NotImplementedError("Use upsert() instead.")
+        return self.upsert(cargo_dto, self._current_bucket())
 
     def update(self, cargo_dto: CargoDto) -> CargoDto:
-        raise NotImplementedError("Use upsert() instead.")
+        return self.upsert(cargo_dto, self._current_bucket())
+
+    @staticmethod
+    def _current_bucket() -> datetime:
+        return datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
         
     def upsert(self, cargo_dto: CargoDto, snapshot_time_bucket: datetime) -> CargoDto:
         """PostgreSQL ON CONFLICT DO UPDATE upsert."""
