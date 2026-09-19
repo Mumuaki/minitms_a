@@ -135,6 +135,12 @@ class CargoRepositoryImpl(CargoRepository):
             company_rating=cargo.company_rating,
             published_at=cargo.published_at,
             is_hidden=cargo.is_hidden,
+            profitability=ProfitabilityDto(
+                rate_per_km=float(cargo.rate_per_km) if cargo.rate_per_km is not None else None,
+                empty_run_km=None,
+                total_distance=None,
+                color_code=cargo.status_color,
+            ),
             created_at=cargo.created_at.isoformat()
         )
 
