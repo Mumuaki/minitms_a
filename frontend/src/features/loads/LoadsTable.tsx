@@ -18,13 +18,14 @@ interface Cargo {
 interface LoadsTableProps {
   loads: Cargo[];
   isLoading: boolean;
+  onSelect?: (cargo: Cargo) => void;
 }
 
 const COLOR: Record<string, string> = { RED: '#fecaca', GRAY: '#e5e7eb', YELLOW: '#fef08a', GREEN: '#bbf7d0' };
 
 type SortKey = 'external_id' | 'loading_place' | 'unloading_place' | 'loading_date' | 'weight' | 'price' | 'distance_trans_eu' | 'rate_per_km';
 
-export const LoadsTable = ({ loads, isLoading }: LoadsTableProps) => {
+export const LoadsTable = ({ loads, isLoading, onSelect }: LoadsTableProps) => {
   const [sortKey, setSortKey] = useState<SortKey>('price');
   const [asc, setAsc] = useState(false);
 
@@ -82,7 +83,12 @@ export const LoadsTable = ({ loads, isLoading }: LoadsTableProps) => {
             const cc = load.profitability ? load.profitability.color_code : undefined;
             const bg = cc ? COLOR[cc] : undefined;
             return (
-              <tr key={load.id} style={bg ? { backgroundColor: bg } : undefined}>
+              <tr
+                key={load.id}
+                style={bg ? { backgroundColor: bg } : undefined}
+                onClick={() => onSelect && onSelect(load)}
+                className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
+              >
                 <td className="px-4 py-2 font-medium">{load.external_id}</td>
                 <td className="px-4 py-2">{load.loading_place ? load.loading_place.address : '—'}</td>
                 <td className="px-4 py-2">{load.unloading_place ? load.unloading_place.address : '—'}</td>

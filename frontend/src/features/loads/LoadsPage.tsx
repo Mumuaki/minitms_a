@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { RefreshCw, Search, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { LoadsTable } from './LoadsTable';
+import { Modal } from '@/components/ui/Modal';
 import { apiClient } from '../../infrastructure/api/client';
 
 const fetchLoads = async () => {
@@ -39,6 +40,8 @@ export const LoadsPage = () => {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(true);
   const [filtersSaved, setFiltersSaved] = useState(false);
+  const [selectedCargo, setSelectedCargo] = useState<any | null>(null);
+  const [countryFilter, setCountryFilter] = useState<string>('all');
 
   const loadData = async () => {
     setLoading(true);
@@ -90,6 +93,22 @@ export const LoadsPage = () => {
     setFiltersSaved(true);
     window.setTimeout(() => setFiltersSaved(false), 2000);
   };
+
+  const countryCodes = Array.from(
+    new Set(
+      loads.flatMap((c: any) => [
+        c.loading_place?.country_code,
+        c.unloading_place?.country_code,
+      ]).filter(Boolean)
+    )
+  ).sort();
+
+  const filteredLoads = countryFilter === 'all'
+    ? loads
+    : loads.filter((c: any) =>
+        c.loading_place?.country_code === countryFilter ||
+        c.unloading_place?.country_code === countryFilter
+      );
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,6 +286,20 @@ export const LoadsPage = () => {
         </div>
       )}
 
+      {loads.length > 0 && (
+        <div className="flex items-center gap-2 mb-4">
+          <label className="text-sm font-medium">Страна:</label>
+          <select
+            className="input w-auto"
+            value={countryFilter}
+            onChange={(e) => setCountryFilter(e.target.value)}
+          >
+            <option value="all">Все</option>
+            {countryCodes.map((cc) => <option key={cc} value={cc}>{cc}</option>)}
+          </select>
+        </div>
+      )}
+
       {!loading && loads.length === 0 && !error && (
         <div className="card text-center py-10">
           <p className="text-muted text-lg mb-2">Грузы не найдены</p>
@@ -274,7 +307,25 @@ export const LoadsPage = () => {
         </div>
       )}
 
-      <LoadsTable loads={loads} isLoading={loading} />
+      <LoadsTable loads={filteredLoads} isLoading={loading} onSelect={setSelectedCargo} />
+
+      <Modal isOpen={!!selectedCargo} onClose={() => setSelectedCargo(null)} title="Детали груза">
+        {selectedCargo && (
+          <div className="space-y-2 text-sm">
+            <p><b>Заявка:</b> {selectedCargo.external_id || '—'}</p>
+            <p><b>Загрузка:</b> {selectedCargo.loading_place?.address || '—'} ({selectedCargo.loading_place?.country_code || '—'})</p>
+            <p><b>Выгрузка:</b> {selectedCargo.unloading_place?.address || '—'} ({selectedCargo.unloading_place?.country_code || '—'})</p>
+            <p><b>Дата загрузки:</b> {selectedCargo.loading_date || '—'}</p>
+            <p><b>Дата выгрузки:</b> {selectedCargo.unloading_date || '—'}</p>
+            <p><b>Вес:</b> {selectedCargo.weight != null ? selectedCargo.weight + ' кг' : '—'}</p>
+            <p><b>Тип кузова:</b> {selectedCargo.body_type || '—'}</p>
+            <p><b>Дистанция Trans.eu:</b> {selectedCargo.distance_trans_eu || '—'} км</p>
+            <p><b>Дистанция OSM:</b> {selectedCargo.distance_osm || '—'} км</p>
+            <p><b>Ставка €/км:</b> {selectedCargo.profitability?.rate_per_km != null ? selectedCargo.profitability.rate_per_km.toFixed(2) : '—'}</p>
+            <p><b>Цена:</b> {selectedCargo.price || '—'} €</p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
