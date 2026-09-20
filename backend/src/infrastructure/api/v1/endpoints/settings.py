@@ -23,7 +23,7 @@ router = APIRouter(prefix="/settings", tags=["Settings & Configuration"])
 _system_settings: Dict[str, Any] = {
     "app_name": os.getenv("APP_NAME", "MiniTMS"),
     "default_currency": "EUR",
-    "default_language": "uk",
+    "default_language": "ru",
     "max_email_per_hour": 50,
     "email_delay_seconds": 30,
     "fuel_price_per_liter": 1.65,
@@ -117,7 +117,7 @@ async def get_user_settings(
     """Настройки текущего пользователя."""
     defaults = {
         "user_id": current_user.id,
-        "language": "uk",
+        "language": "ru",
         "theme": "dark",
         "notifications_enabled": True,
         "email_notifications": True,
@@ -138,7 +138,7 @@ async def update_user_settings(
     """Обновить настройки текущего пользователя."""
     existing = _user_settings.get(current_user.id, {
         "user_id": current_user.id,
-        "language": "uk",
+        "language": "ru",
         "theme": "dark",
         "notifications_enabled": True,
         "email_notifications": True,
