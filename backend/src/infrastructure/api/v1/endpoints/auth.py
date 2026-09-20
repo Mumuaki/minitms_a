@@ -10,6 +10,9 @@ Auth Endpoints — REST API для авторизации.
 """
 
 from datetime import datetime, timedelta
+from typing import List, Optional
+from collections import defaultdict, deque
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
@@ -29,10 +32,12 @@ from backend.src.infrastructure.api.v1.schemas.auth_schema import (
 from backend.src.infrastructure.api.v1.dependencies import (
     get_current_user,
     CurrentUser,
+    require_role,
 )
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
 from backend.src.domain.repositories.user_repository import UserRepository
 from backend.src.infrastructure.persistence.sqlalchemy.repositories.user_repository import SqlAlchemyUserRepository
+from backend.src.domain.entities.audit_log import AuthAuditLog
 
 
 # Роутер с префиксом /auth
@@ -48,6 +53,48 @@ def get_user_repository(db: Session = Depends(get_db)) -> UserRepository:
     return SqlAlchemyUserRepository(db)
 
 
+_LOGIN_ATTEMPTS = defaultdict(deque)
+
+
+def _client_ip(request: Request):
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else None
+
+
+def _enforce_login_rate_limit(ip):
+    if ip is None:
+        return
+    now = datetime.now()
+    q = _LOGIN_ATTEMPTS[ip]
+    while q and (now - q[0]).total_seconds() > 60:
+        q.popleft()
+    if len(q) >= 10:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Try again in a minute.",
+        )
+    q.append(now)
+
+
+def _audit_login(db, email, user_id, ip, user_agent, success):
+    db.add(AuthAuditLog(email=email, user_id=user_id, ip=ip, user_agent=user_agent, success=success))
+    db.commit()
+
+
+class AuditLogEntry(BaseModel):
+    id: int
+    email: str
+    ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    success: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ============================================================================
 # ENDPOINTS
 # ============================================================================
@@ -61,69 +108,77 @@ def get_user_repository(db: Session = Depends(get_db)) -> UserRepository:
 )
 async def login(
     response: Response,
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    user_repo: UserRepository = Depends(get_user_repository)
+    user_repo: UserRepository = Depends(get_user_repository),
+    db: Session = Depends(get_db),
 ) -> TokenResponse:
     """
     Вход в систему (UC-AUTH-01).
-    
+
     Принимает форму OAuth2 (username = email, password).
     Возвращает пару JWT токенов.
     """
+    ip = _client_ip(request)
+    user_agent = (request.headers.get("user-agent") or "")[:512]
+    _enforce_login_rate_limit(ip)
+    email = form_data.username
     try:
-        # Получаем пользователя по email (username в OAuth2 форме)
-        user = user_repo.get_by_email(form_data.username)
-    
+        user = user_repo.get_by_email(email)
+
         if user is None:
+            _audit_login(db, email=email, user_id=None, ip=ip, user_agent=user_agent, success=False)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-    
+
         if not user.is_active:
+            _audit_login(db, email=email, user_id=user.id, ip=ip, user_agent=user_agent, success=False)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Account is disabled",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-            
+
         if user.is_locked():
+            _audit_login(db, email=email, user_id=user.id, ip=ip, user_agent=user_agent, success=False)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Account is locked due to too many failed attempts. Try again later.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-    
+
         if not verify_password(form_data.password, user.password_hash):
             user.increment_failed_attempts()
             if user.failed_login_attempts >= 5:
                 user.locked_until = datetime.now() + timedelta(minutes=15)
             user_repo.save(user)
+            _audit_login(db, email=email, user_id=user.id, ip=ip, user_agent=user_agent, success=False)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-            
-        # Успешный вход
+
         user.reset_failed_attempts()
         user_repo.save(user)
-    
+        _audit_login(db, email=email, user_id=user.id, ip=ip, user_agent=user_agent, success=True)
+
         role_value = user.role.value if hasattr(user.role, 'value') else user.role
         access_token = create_access_token(user_id=user.id, role=role_value)
         refresh_token_val = create_refresh_token(user_id=user.id, remember_me=False)
-        
-        # Устанавливаем refresh token в httpOnly cookie
+
         response.set_cookie(
             key="refresh_token",
             value=refresh_token_val,
             httponly=True,
-            max_age=30 * 24 * 60 * 60, # 30 дней
-            secure=True, 
+            max_age=30 * 24 * 60 * 60,
+            secure=True,
             samesite="lax"
         )
-    
+
         return TokenResponse(
             access_token=access_token,
             token_type="bearer",
@@ -132,6 +187,17 @@ async def login(
         raise
     except Exception as e:
         raise
+
+
+@router.get("/audit-log", response_model=List[AuditLogEntry])
+async def get_audit_log(
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role(["administrator"])),
+):
+    """Журнал входов (FR-AUTH-005). Только для администратора."""
+    rows = db.query(AuthAuditLog).order_by(AuthAuditLog.created_at.desc()).limit(limit).all()
+    return rows
 
 
 @router.post(
