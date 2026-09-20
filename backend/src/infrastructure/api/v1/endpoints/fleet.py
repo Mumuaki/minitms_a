@@ -10,6 +10,8 @@ from backend.src.application.use_cases.fleet.update_vehicle import UpdateVehicle
 from backend.src.application.use_cases.fleet.delete_vehicle import DeleteVehicleUseCase
 from backend.src.application.use_cases.fleet.refresh_vehicle_location import RefreshVehicleLocationUseCase
 from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
+from pydantic import BaseModel
+from backend.src.domain.entities.vehicle import Vehicle, VehicleStatus as EntityVehicleStatus
 
 router = APIRouter(prefix="/fleet", tags=["Fleet"])
 
@@ -68,3 +70,28 @@ def refresh_vehicle_location(
     if not updated:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return updated
+
+
+
+class StatusUpdate(BaseModel):
+    status: str
+
+
+@router.patch("/{vehicle_id}/status", response_model=VehicleResponse)
+def update_vehicle_status(
+    vehicle_id: int,
+    payload: StatusUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role(['administrator','director','dispatcher']))
+):
+    """Установить статус ТС: Free / In Transit / Maintenance / Unavailable."""
+    valid = {s.value for s in EntityVehicleStatus}
+    if payload.status not in valid:
+        raise HTTPException(status_code=400, detail="Invalid status. Allowed: " + str(sorted(valid)))
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    vehicle.status = EntityVehicleStatus(payload.status)
+    db.commit()
+    db.refresh(vehicle)
+    return VehicleResponse.model_validate(vehicle)
