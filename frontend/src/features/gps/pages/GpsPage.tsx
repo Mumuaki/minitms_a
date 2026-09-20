@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Navigation, RefreshCw, CheckCircle, XCircle, MapPin } from 'lucide-react';
 import { apiClient } from '../../../infrastructure/api/client';
+import { VehicleMap } from '../../../components/map/VehicleMap';
 
 interface GpsStatus {
   connected: boolean;
@@ -128,6 +129,8 @@ export const GpsPage = () => {
           )}
         </div>
       )}
+
+      <VehicleMap vehicles={vehicles} />
 
       {/* Список ТС с GPS */}
       <div className="card">
