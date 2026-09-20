@@ -16,12 +16,35 @@ from backend.src.domain.repositories.cargo_repository import CargoRepository
 from backend.src.infrastructure.persistence.sqlalchemy.repositories.cargo_repository_impl import CargoRepositoryImpl
 from backend.src.application.use_cases.cargo.search_cargos import SearchCargosUseCase
 from backend.src.application.use_cases.cargo.filter_by_vehicle import FilterByVehicleUseCase
-from backend.src.application.dto.cargo_dto import SearchCargoRequestDto, CargoStatusColor
+from backend.src.application.dto.cargo_dto import SearchCargoRequestDto, CargoStatusColor, CargoDto
 from backend.src.infrastructure.api.v1.schemas.cargo_schema import (
     SearchCargoRequest,
     SearchCargoResponse,
+    CargoResponse,
+    LocationSchema,
     ErrorResponse
 )
+
+
+def _dto_to_response(c: CargoDto) -> CargoResponse:
+    return CargoResponse(
+        id=c.id,
+        external_id=c.external_id,
+        source=c.source,
+        loading_place=LocationSchema(address=c.loading_place.address, country_code=c.loading_place.country_code, lat=c.loading_place.lat, lon=c.loading_place.lon),
+        unloading_place=LocationSchema(address=c.unloading_place.address, country_code=c.unloading_place.country_code, lat=c.unloading_place.lat, lon=c.unloading_place.lon),
+        loading_date=c.loading_date,
+        unloading_date=c.unloading_date,
+        weight=c.weight,
+        body_type=c.body_type,
+        price=c.price,
+        distance_trans_eu=c.distance_trans_eu,
+        distance_osm=c.distance_osm,
+        profitability=c.profitability.model_dump() if c.profitability else None,
+        is_hidden=c.is_hidden,
+        created_at=c.created_at,
+    )
+
 
 
 # Роутер с префиксом /cargos
@@ -269,7 +292,7 @@ async def search_cargos(
 
         # Преобразуем результат в схему ответа
         return SearchCargoResponse(
-            items=result.items,
+            items=[_dto_to_response(c) for c in result.items],
             total=result.total,
             page=result.page,
             limit=result.limit,
@@ -377,7 +400,7 @@ async def filter_cargos_by_vehicle(
 
         # Преобразуем результат в схему ответа
         return SearchCargoResponse(
-            items=result.items,
+            items=[_dto_to_response(c) for c in result.items],
             total=result.total,
             page=result.page,
             limit=result.limit,
