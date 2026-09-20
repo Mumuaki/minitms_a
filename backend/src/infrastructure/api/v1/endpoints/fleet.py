@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
 from backend.src.application.dto.vehicle_dto import VehicleCreate, VehicleResponse
@@ -12,8 +12,9 @@ from backend.src.application.use_cases.fleet.refresh_vehicle_location import Ref
 from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 from pydantic import BaseModel
 from backend.src.domain.entities.vehicle import Vehicle, VehicleStatus as EntityVehicleStatus
-from datetime import date
+from datetime import date, datetime
 from backend.src.domain.entities.order import Order
+from backend.src.domain.entities.vehicle_position import VehiclePosition
 
 router = APIRouter(prefix="/fleet", tags=["Fleet"])
 
@@ -73,6 +74,44 @@ def refresh_vehicle_location(
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return updated
 
+
+
+class VehiclePositionItem(BaseModel):
+    id: int
+    latitude: Optional[float]
+    longitude: Optional[float]
+    place_name: Optional[str]
+    country_code: Optional[str]
+    measured_at: Optional[datetime]
+    created_at: Optional[datetime]
+
+
+@router.get("/{vehicle_id}/positions", response_model=List[VehiclePositionItem])
+def get_vehicle_positions(
+    vehicle_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """История перемещений ТС (FR-GPS-004)."""
+    positions = (
+        db.query(VehiclePosition)
+        .filter(VehiclePosition.vehicle_id == vehicle_id)
+        .order_by(VehiclePosition.measured_at.desc())
+        .limit(200)
+        .all()
+    )
+    return [
+        VehiclePositionItem(
+            id=p.id,
+            latitude=p.latitude,
+            longitude=p.longitude,
+            place_name=p.place_name,
+            country_code=p.country_code,
+            measured_at=p.measured_at,
+            created_at=p.created_at,
+        )
+        for p in positions
+    ]
 
 
 class StatusUpdate(BaseModel):

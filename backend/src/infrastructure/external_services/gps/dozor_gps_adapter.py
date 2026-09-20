@@ -15,6 +15,7 @@ Vehicle object fields used:
 """
 import logging
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
@@ -26,6 +27,17 @@ from backend.src.infrastructure.config.settings import settings
 logger = logging.getLogger(__name__)
 
 _NOMINATIM_UA = "MiniTMS/1.0 (fleet-tracker)"
+
+
+@dataclass
+class GpsPosition:
+    """Структурированная GPS-позиция ТС (FR-GPS-004)."""
+
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    place_name: Optional[str] = None
+    country_code: Optional[str] = None
+    measured_at: Optional[datetime] = None
 
 
 def _base_url() -> str:
@@ -41,8 +53,8 @@ def _creds() -> Tuple[str, str]:
     return settings.GPS_DOZOR_USERNAME.strip(), settings.GPS_DOZOR_PASSWORD.strip()
 
 
-def _reverse_geocode(lat: str, lon: str) -> Optional[str]:
-    """Free Nominatim reverse geocoding. Returns formatted address: ISO-2, postal code, name of location."""
+def _reverse_geocode(lat: str, lon: str) -> Tuple[Optional[str], Optional[str]]:
+    """Обратное геокодирование через Nominatim. Возвращает (country_code, place_name)."""
     try:
         resp = requests.get(
             "https://nominatim.openstreetmap.org/reverse",
@@ -53,48 +65,71 @@ def _reverse_geocode(lat: str, lon: str) -> Optional[str]:
         if resp.status_code == 200:
             data = resp.json()
             address = data.get("address", {})
-            iso = address.get("country_code", "").upper()
+            iso = address.get("country_code", "").upper() or None
             postcode = address.get("postcode", "")
-            
-            city = (address.get("city") or 
-                    address.get("town") or 
-                    address.get("village") or 
-                    address.get("municipality") or 
-                    address.get("county") or 
-                    "")
-            
-            parts = [p for p in [iso, postcode, city] if p]
-            if parts:
-                return ", ".join(parts)
-                
-            return data.get("display_name") or None
+
+            city = (
+                address.get("city")
+                or address.get("town")
+                or address.get("village")
+                or address.get("municipality")
+                or address.get("county")
+                or ""
+            )
+
+            place = ", ".join([p for p in [postcode, city] if p]) or None
+            if iso or place:
+                return iso, place
+            return None, data.get("display_name")
     except Exception as e:
         logger.debug("Nominatim reverse geocode failed: %s", e)
-    return None
+    return None, None
+
+
+def _parse_position(item: dict) -> GpsPosition:
+    """Извлекает структурированную позицию (lat/lon/place/country/measured_at)."""
+    pos = item.get("LastPosition") or {}
+    lat_s = pos.get("Latitude")
+    lon_s = pos.get("Longitude")
+
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    try:
+        lat = float(lat_s) if lat_s is not None else None
+        lon = float(lon_s) if lon_s is not None else None
+    except (ValueError, TypeError):
+        lat = lon = None
+
+    country: Optional[str] = None
+    place: Optional[str] = None
+    if lat is not None and lon is not None:
+        country, place = _reverse_geocode(str(lat), str(lon))
+    if not place:
+        place = f"{lat}, {lon}" if (lat is not None and lon is not None) else None
+
+    ts = item.get("LastPositionTimestamp")
+    measured: Optional[datetime] = None
+    if ts:
+        try:
+            measured = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+        except Exception:
+            measured = datetime.now(timezone.utc)
+    else:
+        measured = datetime.now(timezone.utc)
+
+    return GpsPosition(
+        latitude=lat,
+        longitude=lon,
+        place_name=place,
+        country_code=country,
+        measured_at=measured,
+    )
 
 
 def _parse_vehicle(item: dict) -> Tuple[Optional[str], Optional[datetime]]:
-    """Extract (location_str, last_updated) from a GPS Guard vehicle object."""
-    pos = item.get("LastPosition") or {}
-    lat = pos.get("Latitude")
-    lon = pos.get("Longitude")
-
-    address = None
-    if lat and lon:
-        address = _reverse_geocode(str(lat), str(lon))
-    location_str = address or (f"{lat}, {lon}" if lat and lon else None)
-
-    ts = item.get("LastPositionTimestamp")
-    last_updated: Optional[datetime] = None
-    if ts:
-        try:
-            last_updated = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
-        except Exception:
-            last_updated = datetime.now(timezone.utc)
-    else:
-        last_updated = datetime.now(timezone.utc)
-
-    return location_str, last_updated
+    """Обратная совместимость: возвращает (location_str, last_updated)."""
+    pos = _parse_position(item)
+    return pos.place_name, pos.measured_at
 
 
 class DozorGpsAdapter(GpsService):
@@ -152,36 +187,27 @@ class DozorGpsAdapter(GpsService):
             logger.debug("GPS Guard /vehicle/%s failed: %s", code, e)
         return None
 
-    def get_vehicle_location(
+    def _find_vehicle_item(
         self,
         tracker_id: str,
         license_plate: Optional[str] = None,
-        **kwargs,
-    ) -> Tuple[Optional[str], Optional[datetime]]:
-        """
-        Match vehicle by tracker_id (= GPS Guard Code, e.g. ODOKIRAGEN)
-        or license_plate (= GPS Guard Name, e.g. BT152DH).
-        """
-        if not self.is_configured():
-            logger.info("GPS Guard: credentials not configured")
-            return None, None
-
+    ) -> Optional[dict]:
+        """Ищет объект ТС по tracker_id (= Code) или license_plate (= Name/SPZ)."""
         norm = lambda s: (s or "").strip().upper().replace(" ", "").replace("-", "")
         search = {norm(tracker_id), norm(license_plate)} - {""}
 
-        # --- Fast path: try direct vehicle fetch by tracker_id as Code ---
+        # --- Fast path: direct vehicle fetch by tracker_id as Code ---
         if tracker_id:
             item = self._get_vehicle_direct(tracker_id.strip())
             if item:
-                loc, ts = _parse_vehicle(item)
-                logger.info("GPS Guard: matched via direct fetch Code=%r → %s", tracker_id, loc)
-                return loc, ts
+                logger.info("GPS Guard: matched via direct fetch Code=%r", tracker_id)
+                return item
 
         # --- Fallback: scan all vehicles across all groups ---
         groups = self._get_groups()
         if not groups:
             logger.warning("GPS Guard: no groups returned (bad credentials or empty account)")
-            return None, None
+            return None
 
         for group in groups:
             group_code = group.get("Code", "")
@@ -191,15 +217,43 @@ class DozorGpsAdapter(GpsService):
                 name_norm = norm(item.get("Name", ""))
                 spz_norm = norm(item.get("SPZ", "") or "")
                 if search & {code_norm, name_norm, spz_norm}:
-                    loc, ts = _parse_vehicle(item)
                     logger.info(
-                        "GPS Guard: matched Code=%r Name=%r in group %s → %s",
-                        item.get("Code"), item.get("Name"), group_code, loc,
+                        "GPS Guard: matched Code=%r Name=%r in group %s",
+                        item.get("Code"), item.get("Name"), group_code,
                     )
-                    return loc, ts
+                    return item
 
         logger.info(
             "GPS Guard: no match for tracker_id=%r plate=%r in %d group(s)",
             tracker_id, license_plate, len(groups),
         )
-        return None, None
+        return None
+
+    def get_vehicle_location(
+        self,
+        tracker_id: str,
+        license_plate: Optional[str] = None,
+        **kwargs,
+    ) -> Tuple[Optional[str], Optional[datetime]]:
+        """Возвращает (location_str, last_updated) — для обратной совместимости."""
+        if not self.is_configured():
+            logger.info("GPS Guard: credentials not configured")
+            return None, None
+        item = self._find_vehicle_item(tracker_id, license_plate)
+        if item is None:
+            return None, None
+        return _parse_vehicle(item)
+
+    def get_vehicle_position(
+        self,
+        tracker_id: str,
+        license_plate: Optional[str] = None,
+        **kwargs,
+    ) -> Optional[GpsPosition]:
+        """Возвращает структурированную GPS-позицию ТС (FR-GPS-004)."""
+        if not self.is_configured():
+            return None
+        item = self._find_vehicle_item(tracker_id, license_plate)
+        if item is None:
+            return None
+        return _parse_position(item)
