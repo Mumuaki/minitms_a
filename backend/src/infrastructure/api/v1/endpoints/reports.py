@@ -150,12 +150,50 @@ async def get_financial_report(
 
 @router.get("/export")
 async def export_reports(
-    format: str = "xlsx",
+    format: str = "csv",
+    period_start: Optional[date] = None,
+    period_end: Optional[date] = None,
+    order_repo: OrderRepository = Depends(get_order_repository),
     current_user=Depends(require_role(['administrator','director','dispatcher'])),
 ):
-    """Экспорт данных в Excel или PDF."""
-    if format not in ["xlsx", "pdf"]:
+    """Экспорт отчёта по заказам (FR-REPORT-003): csv или xlsx."""
+    if format not in ("csv", "xlsx", "pdf"):
         raise HTTPException(status_code=400, detail="Unsupported export format")
-        
-    # Заглушка
-    return {"status": "ok", "message": f"Export functionality for {format} is pending integration."}
+    if format == "pdf":
+        raise HTTPException(status_code=501, detail="PDF export requires a PDF library (not installed)")
+
+    if not period_start:
+        period_start = date(datetime.now().year, 1, 1)
+    if not period_end:
+        period_end = date(datetime.now().year, 12, 31)
+    orders = order_repo.get_all_for_period(period_start, period_end)
+
+    from fastapi.responses import Response
+    import io, csv
+
+    rows = [["id", "vehicle_id", "start_date", "end_date", "revenue", "margin", "distance", "status"]]
+    for o in orders:
+        rows.append([
+            o.id, o.vehicle_id, str(o.start_date), str(o.end_date),
+            o.revenue, o.margin, o.distance,
+            o.status.value if hasattr(o.status, "value") else o.status,
+        ])
+
+    if format == "csv":
+        buf = io.StringIO()
+        csv.writer(buf).writerows(rows)
+        return Response(content=buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=report.csv"})
+
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Report"
+    for row in rows:
+        ws.append(row)
+    buf = io.BytesIO()
+    wb.save(buf)
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=report.xlsx"},
+    )

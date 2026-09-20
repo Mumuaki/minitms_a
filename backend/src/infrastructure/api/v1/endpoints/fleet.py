@@ -130,3 +130,27 @@ def get_vehicle_history(
         )
         for o in orders
     ]
+
+
+
+@router.get("/export")
+def export_fleet(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Экспорт автопарка в CSV (FR-FLEET-006), включая размеры кузова L×W×H."""
+    from fastapi.responses import Response
+    vehicles = db.query(Vehicle).order_by(Vehicle.id.asc()).all()
+    header = ["license_plate", "vehicle_type", "length_m", "width_m", "height_m", "payload_capacity_kg", "status", "gps_tracker_id", "current_location"]
+    lines = [";".join(header)]
+    for v in vehicles:
+        lines.append(";".join([
+            v.license_plate,
+            v.vehicle_type.value if hasattr(v.vehicle_type, "value") else str(v.vehicle_type),
+            str(v.length), str(v.width), str(v.height),
+            str(v.payload_capacity),
+            v.status.value if hasattr(v.status, "value") else str(v.status),
+            v.gps_tracker_id or "",
+            v.current_location or "",
+        ]))
+    return Response(content=chr(10).join(lines), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=fleet.csv"})
