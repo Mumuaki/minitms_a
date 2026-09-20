@@ -1,26 +1,19 @@
-"""
-Settings & Configuration Endpoints.
-
-Эндпоинты:
-- GET   /settings       — системные настройки
-- PUT   /settings       — обновить системные настройки
-- GET   /settings/user  — настройки текущего пользователя
-- PUT   /settings/user  — обновить настройки пользователя
-"""
-
+"""Settings & Configuration Endpoints (DB-backed, FR-SETTINGS-*)."""
 import os
-from typing import Optional, Dict, Any
+from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from backend.src.infrastructure.api.v1.dependencies import get_current_user, CurrentUser, require_role
+from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
+from backend.src.domain.entities.app_setting import AppSetting
 
 router = APIRouter(prefix="/settings", tags=["Settings & Configuration"])
 
-# In-memory store (replace with DB-backed model as needed)
-_system_settings: Dict[str, Any] = {
+DEFAULT_SYSTEM = {
     "app_name": os.getenv("APP_NAME", "MiniTMS"),
     "default_currency": "EUR",
     "default_language": "ru",
@@ -32,13 +25,33 @@ _system_settings: Dict[str, Any] = {
     "scraping_interval_minutes": 30,
     "timezone": "Europe/Kiev",
     "date_format": "DD.MM.YYYY",
-    "updated_at": datetime.utcnow().isoformat(),
 }
 
-_user_settings: Dict[int, Dict[str, Any]] = {}
+DEFAULT_USER = {
+    "language": "ru",
+    "theme": "dark",
+    "notifications_enabled": True,
+    "email_notifications": True,
+    "dashboard_layout": "default",
+    "items_per_page": 25,
+}
 
 
-# ── Schemas ───────────────────────────────────────────────────────────────────
+def _load(db, key, defaults):
+    row = db.query(AppSetting).filter(AppSetting.key == key).first()
+    if row and isinstance(row.value, dict):
+        return {**defaults, **row.value}
+    return dict(defaults)
+
+
+def _save(db, key, data):
+    row = db.query(AppSetting).filter(AppSetting.key == key).first()
+    if row:
+        row.value = data
+    else:
+        db.add(AppSetting(key=key, value=data))
+    db.commit()
+
 
 class SystemSettings(BaseModel):
     app_name: str
@@ -88,65 +101,46 @@ class UserSettingsUpdate(BaseModel):
     items_per_page: Optional[int] = None
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
-
 @router.get("", response_model=SystemSettings)
-async def get_system_settings(
-    current_user: CurrentUser = Depends(get_current_user),
-):
-    """Системные настройки приложения."""
-    return SystemSettings(**_system_settings)
+async def get_system_settings(db: Session = Depends(get_db), current_user: CurrentUser = Depends(get_current_user)):
+    s = _load(db, "system", DEFAULT_SYSTEM)
+    s["updated_at"] = datetime.utcnow().isoformat()
+    return SystemSettings(**s)
 
 
 @router.put("", response_model=SystemSettings)
 async def update_system_settings(
     update: SystemSettingsUpdate,
-    current_user: CurrentUser = Depends(require_role(['administrator','director'])),
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role(['administrator', 'director'])),
 ):
-    """Обновить системные настройки (только admin)."""
+    s = _load(db, "system", DEFAULT_SYSTEM)
     for field, value in update.dict(exclude_none=True).items():
-        _system_settings[field] = value
-    _system_settings["updated_at"] = datetime.utcnow().isoformat()
-    return SystemSettings(**_system_settings)
+        s[field] = value
+    _save(db, "system", s)
+    s["updated_at"] = datetime.utcnow().isoformat()
+    return SystemSettings(**s)
 
 
 @router.get("/user", response_model=UserSettings)
-async def get_user_settings(
-    current_user: CurrentUser = Depends(get_current_user),
-):
-    """Настройки текущего пользователя."""
-    defaults = {
-        "user_id": current_user.id,
-        "language": "ru",
-        "theme": "dark",
-        "notifications_enabled": True,
-        "email_notifications": True,
-        "dashboard_layout": "default",
-        "items_per_page": 25,
-        "updated_at": datetime.utcnow().isoformat(),
-    }
-    stored = _user_settings.get(current_user.id, {})
-    merged = {**defaults, **stored}
-    return UserSettings(**merged)
+async def get_user_settings(db: Session = Depends(get_db), current_user: CurrentUser = Depends(get_current_user)):
+    u = _load(db, "user:" + str(current_user.id), DEFAULT_USER)
+    u["user_id"] = current_user.id
+    u["updated_at"] = datetime.utcnow().isoformat()
+    return UserSettings(**u)
 
 
 @router.put("/user", response_model=UserSettings)
 async def update_user_settings(
     update: UserSettingsUpdate,
+    db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    """Обновить настройки текущего пользователя."""
-    existing = _user_settings.get(current_user.id, {
-        "user_id": current_user.id,
-        "language": "ru",
-        "theme": "dark",
-        "notifications_enabled": True,
-        "email_notifications": True,
-        "dashboard_layout": "default",
-        "items_per_page": 25,
-    })
+    key = "user:" + str(current_user.id)
+    u = _load(db, key, DEFAULT_USER)
     for field, value in update.dict(exclude_none=True).items():
-        existing[field] = value
-    existing["updated_at"] = datetime.utcnow().isoformat()
-    _user_settings[current_user.id] = existing
-    return UserSettings(**existing)
+        u[field] = value
+    _save(db, key, u)
+    u["user_id"] = current_user.id
+    u["updated_at"] = datetime.utcnow().isoformat()
+    return UserSettings(**u)
