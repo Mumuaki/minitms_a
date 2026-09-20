@@ -17,6 +17,7 @@ from backend.src.infrastructure.api.v1.endpoints import (
     fleet,
     vehicles,
     reports,
+    orders,
 )
 
 app = FastAPI(
@@ -58,6 +59,7 @@ app.include_router(users.router, prefix=api_v1_prefix)
 app.include_router(fleet.router, prefix=api_v1_prefix)
 app.include_router(vehicles.router, prefix=api_v1_prefix)
 app.include_router(reports.router, prefix=api_v1_prefix)
+app.include_router(orders.router, prefix=api_v1_prefix)
 
 
 @app.get("/health", tags=["System"])
