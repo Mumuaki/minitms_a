@@ -209,9 +209,6 @@ async def export_reports(
     """Экспорт отчёта по заказам (FR-REPORT-003): csv или xlsx."""
     if format not in ("csv", "xlsx", "pdf"):
         raise HTTPException(status_code=400, detail="Unsupported export format")
-    if format == "pdf":
-        raise HTTPException(status_code=501, detail="PDF export requires a PDF library (not installed)")
-
     if not period_start:
         period_start = date(datetime.now().year, 1, 1)
     if not period_end:
@@ -233,6 +230,25 @@ async def export_reports(
         buf = io.StringIO()
         csv.writer(buf).writerows(rows)
         return Response(content=buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=report.csv"})
+
+    if format == "pdf":
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4)
+        styles = getSampleStyleSheet()
+        data = [[Paragraph(str(c), styles["Normal"]) for c in row] for row in rows]
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ]))
+        doc.build([table])
+        return Response(content=buf.getvalue(), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=report.pdf"})
 
     from openpyxl import Workbook
     wb = Workbook()
