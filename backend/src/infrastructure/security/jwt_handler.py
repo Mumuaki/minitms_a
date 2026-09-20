@@ -8,6 +8,7 @@ JWT Handler - утилита для работы с JWT токенами.
 - Алгоритм: HS256 (симметричный)
 """
 
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -23,7 +24,7 @@ except ImportError:
 
 # Настройки JWT (в продакшене должны браться из переменных окружения)
 # TODO: Перенести в config после создания модуля настроек
-SECRET_KEY = "your-secret-key-change-in-production"  # Заменить в .env
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")  # берём из .env
 ALGORITHM = "HS256"
 
 # Время жизни токенов (в минутах)

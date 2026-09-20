@@ -14,7 +14,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from backend.src.infrastructure.api.v1.dependencies import get_current_user
+from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 
 router = APIRouter(prefix="/integrations/google-sheets", tags=["Google Sheets Integration"])
 
@@ -95,7 +95,7 @@ async def get_sync_status(
 
 @router.post("/sync", response_model=SyncStatus, status_code=status.HTTP_200_OK)
 async def trigger_sync(
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director'])),
 ):
     """Запустить синхронизацию данных с Google Sheets (24 столбца)."""
     global _last_sync

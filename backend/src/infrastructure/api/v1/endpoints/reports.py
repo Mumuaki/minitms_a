@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from backend.src.infrastructure.api.v1.dependencies import get_current_user
+from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
 from backend.src.domain.repositories.order_repository import OrderRepository
 from backend.src.domain.repositories.plan_repository import PlanRepository
@@ -126,7 +126,7 @@ async def get_financial_report(
 @router.get("/export")
 async def export_reports(
     format: str = "xlsx",
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director','dispatcher'])),
 ):
     """Экспорт данных в Excel или PDF."""
     if format not in ["xlsx", "pdf"]:

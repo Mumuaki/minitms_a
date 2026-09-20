@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from backend.src.infrastructure.api.v1.dependencies import get_current_user
+from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
 from backend.src.domain.repositories.plan_repository import PlanRepository
 from backend.src.infrastructure.persistence.sqlalchemy.repositories.plan_repository import SqlAlchemyPlanRepository
@@ -90,7 +90,7 @@ async def get_financial_plans(
 async def create_financial_plan(
     plan_in: FinancialPlanCreate,
     repo: PlanRepository = Depends(get_plan_repository),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director'])),
 ):
     """Создать новый финансовый план."""
     existing = repo.get_by_vehicle_and_period(plan_in.vehicle_id, plan_in.period_start, plan_in.period_end)

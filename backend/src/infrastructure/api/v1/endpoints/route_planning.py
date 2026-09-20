@@ -25,7 +25,7 @@ router = APIRouter(prefix="/route-planning", tags=["Route Planning"])
 async def plan_routes(
     request: RoutePlanningRequest,
     use_case: PlanRoutesUseCase = Depends(get_plan_routes_use_case),
-    _: None = Depends(require_role(["admin", "dispatcher"]))
+    _: None = Depends(require_role(["administrator", "dispatcher"]))
 ) -> RoutePlanningResponse:
     """
     Планирует маршруты для транспортных средств на основе доступных грузов.
@@ -54,7 +54,7 @@ async def optimize_routes(
     vehicle_ids: List[str],
     planning_date: datetime,
     use_case: PlanRoutesUseCase = Depends(get_plan_routes_use_case),
-    _: None = Depends(require_role(["admin", "dispatcher"]))
+    _: None = Depends(require_role(["administrator", "dispatcher"]))
 ) -> RoutePlanningResponse:
     """
     Оптимизирует маршруты с параметрами по умолчанию.

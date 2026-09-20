@@ -12,6 +12,7 @@ from typing import Optional, List
 from datetime import date
 
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
+from backend.src.infrastructure.api.v1.dependencies import get_current_user
 from backend.src.domain.repositories.cargo_repository import CargoRepository
 from backend.src.infrastructure.persistence.sqlalchemy.repositories.cargo_repository_impl import CargoRepositoryImpl
 from backend.src.application.use_cases.cargo.search_cargos import SearchCargosUseCase
@@ -48,7 +49,7 @@ def _dto_to_response(c: CargoDto) -> CargoResponse:
 
 
 # Роутер с префиксом /cargos
-router = APIRouter(prefix="/cargos", tags=["Cargos"])
+router = APIRouter(prefix="/cargos", tags=["Cargos"], dependencies=[Depends(get_current_user)])
 
 # ============================================================================
 # DEPENDENCIES

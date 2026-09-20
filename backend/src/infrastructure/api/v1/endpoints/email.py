@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
-from backend.src.infrastructure.api.v1.dependencies import get_current_user
+from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ async def create_email_template(
     subject: str,
     body: str,
     category: str = "general",
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director','dispatcher'])),
 ):
     """Создать новый шаблон письма."""
     now = datetime.utcnow().isoformat()
@@ -171,7 +171,7 @@ async def get_email_history(
 @router.post("/send", status_code=status.HTTP_200_OK)
 async def send_email(
     request: SendEmailRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director','dispatcher'])),
 ):
     """Отправить письмо через SMTP."""
     if not SMTP_USERNAME:

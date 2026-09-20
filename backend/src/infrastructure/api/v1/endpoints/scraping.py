@@ -14,7 +14,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
-from backend.src.infrastructure.api.v1.dependencies import get_current_user
+from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 
 from typing import List
 from fastapi import Query, HTTPException
@@ -83,7 +83,7 @@ async def get_scraping_status(
 
 @router.post("/start", status_code=status.HTTP_200_OK)
 async def start_scraping(
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director','dispatcher'])),
 ):
     """Запустить скрапинг вручную."""
     if _scraper_state["is_running"]:
@@ -98,7 +98,7 @@ async def start_scraping(
 
 @router.post("/stop", status_code=status.HTTP_200_OK)
 async def stop_scraping(
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director','dispatcher'])),
 ):
     """Остановить скрапер."""
     _scraper_state["is_running"] = False
@@ -112,6 +112,7 @@ async def stop_scraping(
     description="Запускает скрапинг Trans.eu по заданным параметрам и сохраняет результаты в БД."
 )
 async def import_trans_eu(
+    current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
     loading: str = Query(..., description="Место загрузки"),
     unloading: Optional[str] = Query(None, description="Место выгрузки"),
     loading_radius: int = Query(75, description="Радиус загрузки"),

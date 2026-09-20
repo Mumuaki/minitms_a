@@ -15,7 +15,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
-from backend.src.infrastructure.api.v1.dependencies import get_current_user, CurrentUser
+from backend.src.infrastructure.api.v1.dependencies import get_current_user, CurrentUser, require_role
 
 router = APIRouter(prefix="/settings", tags=["Settings & Configuration"])
 
@@ -101,7 +101,7 @@ async def get_system_settings(
 @router.put("", response_model=SystemSettings)
 async def update_system_settings(
     update: SystemSettingsUpdate,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_role(['administrator','director'])),
 ):
     """Обновить системные настройки (только admin)."""
     for field, value in update.dict(exclude_none=True).items():

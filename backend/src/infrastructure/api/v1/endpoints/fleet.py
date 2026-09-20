@@ -9,7 +9,7 @@ from backend.src.application.use_cases.fleet.get_all_vehicles import GetAllVehic
 from backend.src.application.use_cases.fleet.update_vehicle import UpdateVehicleUseCase
 from backend.src.application.use_cases.fleet.delete_vehicle import DeleteVehicleUseCase
 from backend.src.application.use_cases.fleet.refresh_vehicle_location import RefreshVehicleLocationUseCase
-from backend.src.infrastructure.api.v1.dependencies import get_current_user
+from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 
 router = APIRouter(prefix="/fleet", tags=["Fleet"])
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/fleet", tags=["Fleet"])
 def create_vehicle(
     vehicle: VehicleCreate, 
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_role(['administrator','director','dispatcher']))
 ):
     use_case = AddVehicleUseCase(db)
     return use_case.execute(vehicle)
@@ -35,7 +35,7 @@ def update_vehicle(
     vehicle_id: int,
     vehicle: VehicleCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_role(['administrator','director','dispatcher']))
 ):
     use_case = UpdateVehicleUseCase(db)
     updated_vehicle = use_case.execute(vehicle_id, vehicle)
@@ -47,7 +47,7 @@ def update_vehicle(
 def delete_vehicle(
     vehicle_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director'])),
 ):
     use_case = DeleteVehicleUseCase(db)
     success = use_case.execute(vehicle_id)
@@ -60,7 +60,7 @@ def delete_vehicle(
 def refresh_vehicle_location(
     vehicle_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(['administrator','director','dispatcher'])),
 ):
     """Refresh vehicle's current_location from GPS (Dozor/Guard). Fleet card will show actual location."""
     use_case = RefreshVehicleLocationUseCase(db)
