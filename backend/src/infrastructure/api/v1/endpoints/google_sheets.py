@@ -23,13 +23,31 @@ from backend.src.infrastructure.external_services.google_sheets.sheets_mapper im
 
 router = APIRouter(prefix="/integrations/google-sheets", tags=["Google Sheets Integration"])
 
-GOOGLE_SHEETS_CREDENTIALS = os.getenv("GOOGLE_SHEETS_CREDENTIALS", "")
+GOOGLE_SHEETS_CLIENT_ID = os.getenv("GOOGLE_SHEETS_CLIENT_ID", "")
+GOOGLE_SHEETS_CLIENT_SECRET = os.getenv("GOOGLE_SHEETS_CLIENT_SECRET", "")
+GOOGLE_SHEETS_REFRESH_TOKEN = os.getenv("GOOGLE_SHEETS_REFRESH_TOKEN", "")
 GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID", "")
 
 
 def _configured(value):
     v = (value or "").strip()
     return bool(v) and v != "CHANGE_ME"
+
+
+def _is_configured():
+    return all(_configured(v) for v in [GOOGLE_SHEETS_CLIENT_ID, GOOGLE_SHEETS_CLIENT_SECRET, GOOGLE_SHEETS_REFRESH_TOKEN, GOOGLE_SHEETS_ID])
+
+
+def _build_credentials():
+    from google.oauth2.credentials import Credentials
+    return Credentials(
+        token=None,
+        refresh_token=GOOGLE_SHEETS_REFRESH_TOKEN,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=GOOGLE_SHEETS_CLIENT_ID,
+        client_secret=GOOGLE_SHEETS_CLIENT_SECRET,
+        scopes=["https://www.googleapis.com/auth/spreadsheets"],
+    )
 
 # Track last sync state in memory
 _last_sync: Optional[dict] = None
@@ -64,14 +82,14 @@ async def get_google_sheets_status(
     current_user=Depends(get_current_user),
 ):
     """Статус подключения к Google Sheets."""
-    connected = _configured(GOOGLE_SHEETS_CREDENTIALS) and _configured(GOOGLE_SHEETS_ID)
+    connected = _is_configured()
 
     if connected:
         url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEETS_ID}"
         message = "Connected to Google Sheets"
     else:
         url = None
-        message = "Google Sheets not configured. Set GOOGLE_SHEETS_CREDENTIALS and GOOGLE_SHEETS_ID in .env"
+        message = "Google Sheets not configured. Set GOOGLE_SHEETS_CLIENT_ID, GOOGLE_SHEETS_CLIENT_SECRET, GOOGLE_SHEETS_REFRESH_TOKEN and GOOGLE_SHEETS_ID in .env"
 
     return GoogleSheetsStatus(
         connected=connected,
@@ -111,10 +129,10 @@ async def trigger_sync(
     """Синхронизировать заказы с Google Sheets (25 столбцов, FR-GSHEET-*)."""
     global _last_sync
 
-    if not (_configured(GOOGLE_SHEETS_CREDENTIALS) and _configured(GOOGLE_SHEETS_ID)):
+    if not _is_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Google Sheets not configured. Set GOOGLE_SHEETS_CREDENTIALS and GOOGLE_SHEETS_ID in .env",
+            detail="Google Sheets not configured. Set GOOGLE_SHEETS_CLIENT_ID, GOOGLE_SHEETS_CLIENT_SECRET, GOOGLE_SHEETS_REFRESH_TOKEN and GOOGLE_SHEETS_ID in .env",
         )
 
     import uuid
@@ -126,11 +144,8 @@ async def trigger_sync(
 
     try:
         import gspread
-        from google.oauth2.service_account import Credentials
-        import json
 
-        creds_data = json.loads(GOOGLE_SHEETS_CREDENTIALS)
-        creds = Credentials.from_service_account_info(creds_data, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+        creds = _build_credentials()
         gc = gspread.authorize(creds)
         sheet = gc.open_by_key(GOOGLE_SHEETS_ID).sheet1
 
