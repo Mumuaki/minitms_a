@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { apiClient } from '@/infrastructure/api/client';
 
 const LANGS = ['ru', 'en', 'sk', 'pl'];
 
 export const SettingsPage = () => {
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [sys, setSys] = useState<any>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export const SettingsPage = () => {
 
   return (
     <div className="page-container">
-      <h1 className="text-2xl font-bold mb-6">Настройки</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('settings')}</h1>
       {error && <div className="auth-error mb-4"><span>{error}</span></div>}
       {user && (
         <div className="card mb-4">

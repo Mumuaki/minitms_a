@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { apiClient } from '@/infrastructure/api/client';
 
 type StatCard = { plan: number; fact: number; unit: string; status_color: string };
@@ -12,6 +13,7 @@ function pct(fact: number, plan: number): string {
 }
 
 export const DashboardPage = () => {
+  const { t } = useLanguage();
   const [data, setData] = useState<Dash | null>(null);
   const [orders, setOrders] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Дашборд</h1>
+      <h1 className="text-2xl font-bold">{t('dashboard')}</h1>
       {error && <div className="auth-error mb-4"><span>{error}</span></div>}
       {!data && !error ? (
         <p className="text-muted">Загрузка…</p>

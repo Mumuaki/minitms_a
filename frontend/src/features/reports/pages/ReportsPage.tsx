@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { apiClient } from '@/infrastructure/api/client';
 
 const COLOR: Record<string, string> = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' };
 
 export const ReportsPage = () => {
+  const { t } = useLanguage();
   const [stats, setStats] = useState<any>(null);
   const [fin, setFin] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export const ReportsPage = () => {
 
   return (
     <div className="page-container">
-      <h1 className="text-2xl font-bold mb-6">Отчеты</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('reports')}</h1>
       {error && <div className="auth-error mb-4"><span>{error}</span></div>}
       {fin && (
         <div className="card mb-4">

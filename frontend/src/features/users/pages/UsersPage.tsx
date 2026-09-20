@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus } from 'lucide-react';
 import { UsersTable } from '../components/UsersTable';
 import { UserModal } from '../components/UserModal';
@@ -7,6 +8,7 @@ import { User, CreateUserRequest, UpdateUserRequest } from '../types';
 import '../styles.css';
 
 export const UsersPage = () => {
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -64,7 +66,7 @@ export const UsersPage = () => {
     <div className="container">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">Пользователи</h1>
+          <h1 className="text-2xl font-bold mb-1">{t('users')}</h1>
           <p className="text-muted">Управление доступом и сотрудниками</p>
         </div>
         

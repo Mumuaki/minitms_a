@@ -12,6 +12,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     settings: 'Настройки',
     logout: 'Выйти',
     search: 'Поиск...',
+    financeTitle: 'Финансы и Планирование',
   },
   en: {
     dashboard: 'Dashboard',
@@ -24,6 +25,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     settings: 'Settings',
     logout: 'Log out',
     search: 'Search...',
+    financeTitle: 'Finance & Planning',
   },
   sk: {
     dashboard: 'Dashboard',
@@ -36,6 +38,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     settings: 'Nastavenia',
     logout: 'Odhlásiť sa',
     search: 'Hľadať...',
+    financeTitle: 'Financie a plánovanie',
   },
   pl: {
     dashboard: 'Pulpit',
@@ -48,5 +51,6 @@ export const translations: Record<Lang, Record<string, string>> = {
     settings: 'Ustawienia',
     logout: 'Wyloguj',
     search: 'Szukaj...',
+    financeTitle: 'Finanse i planowanie',
   },
 };

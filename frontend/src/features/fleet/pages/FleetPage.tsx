@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus, Truck, Pencil, Trash2, AlertCircle, MapPin, Clock, RefreshCw, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../../infrastructure/api/client';
@@ -45,6 +46,7 @@ const sendFleetDebugLog = (hypothesisId: string, message: string, data: Record<s
 };
 
 export const FleetPage = () => {
+  const { t } = useLanguage();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -250,7 +252,7 @@ export const FleetPage = () => {
   return (
     <div className="page-container">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Автопарк</h1>
+        <h1 className="text-2xl font-bold">{t('fleet')}</h1>
         <button
           className="btn btn-primary flex items-center gap-2"
           onClick={openAddModal}

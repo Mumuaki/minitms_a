@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { apiClient } from '@/infrastructure/api/client';
 
 export const FinancePage = () => {
+  const { t } = useLanguage();
   const [plans, setPlans] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -19,7 +21,7 @@ export const FinancePage = () => {
 
   return (
     <div className="page-container">
-      <h1 className="text-2xl font-bold mb-6">Финансы и Планирование</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('financeTitle')}</h1>
       {error && <div className="auth-error mb-4"><span>{error}</span></div>}
       <div className="card mb-4">
         <h2 className="text-lg font-medium mb-3">Новый план</h2>

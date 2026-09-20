@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Navigation, RefreshCw, CheckCircle, XCircle, MapPin } from 'lucide-react';
 import { apiClient } from '../../../infrastructure/api/client';
 
@@ -23,6 +24,7 @@ interface GpsVehicle {
 }
 
 export const GpsPage = () => {
+  const { t } = useLanguage();
   const [status, setStatus] = useState<GpsStatus | null>(null);
   const [vehicles, setVehicles] = useState<GpsVehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +62,7 @@ export const GpsPage = () => {
       <div className="page-container">
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <Navigation size={28} />
-          GPS трекер
+          {t('gps')}
         </h1>
         <div className="card">
           <p className="text-muted">Загрузка...</p>
@@ -74,7 +76,7 @@ export const GpsPage = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Navigation size={28} />
-          GPS трекер
+          {t('gps')}
         </h1>
         <button
           type="button"

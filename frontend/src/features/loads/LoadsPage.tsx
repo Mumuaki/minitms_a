@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { RefreshCw, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { LoadsTable } from './LoadsTable';
 import { apiClient } from '../../infrastructure/api/client';
@@ -27,6 +28,7 @@ const INITIAL_SEARCH: SearchFormData = {
 };
 
 export const LoadsPage = () => {
+  const { t } = useLanguage();
   const [loads, setLoads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +100,7 @@ export const LoadsPage = () => {
   return (
     <div className="page-container">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Грузы</h1>
+        <h1 className="text-2xl font-bold">{t('loads')}</h1>
         <button
           onClick={loadData}
           disabled={loading}
