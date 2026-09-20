@@ -15,6 +15,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
+from sqlalchemy.orm import Session
+from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
+from backend.src.domain.entities.order import Order
+from backend.src.infrastructure.persistence.sqlalchemy.models.cargo_model import Cargo
+from backend.src.infrastructure.external_services.google_sheets.sheets_mapper import SHEETS_HEADERS, build_order_row
 
 router = APIRouter(prefix="/integrations/google-sheets", tags=["Google Sheets Integration"])
 
@@ -67,7 +72,7 @@ async def get_google_sheets_status(
         connected=connected,
         spreadsheet_id=GOOGLE_SHEETS_ID if connected else None,
         spreadsheet_url=url,
-        columns_count=24,
+        columns_count=len(SHEETS_HEADERS),
         last_sync=_last_sync.get("completed_at") if _last_sync else None,
         message=message,
     )
@@ -95,9 +100,10 @@ async def get_sync_status(
 
 @router.post("/sync", response_model=SyncStatus, status_code=status.HTTP_200_OK)
 async def trigger_sync(
+    db: Session = Depends(get_db),
     current_user=Depends(require_role(['administrator','director'])),
 ):
-    """Запустить синхронизацию данных с Google Sheets (24 столбца)."""
+    """Синхронизировать заказы с Google Sheets (25 столбцов, FR-GSHEET-*)."""
     global _last_sync
 
     if not GOOGLE_SHEETS_CREDENTIALS or not GOOGLE_SHEETS_ID:
@@ -109,8 +115,6 @@ async def trigger_sync(
     import uuid
     now = datetime.utcnow().isoformat()
     sync_id = str(uuid.uuid4())[:8]
-
-    # Attempt real sync if gspread is available
     rows_synced = 0
     errors: List[str] = []
     sync_status = "completed"
@@ -121,14 +125,26 @@ async def trigger_sync(
         import json
 
         creds_data = json.loads(GOOGLE_SHEETS_CREDENTIALS)
-        scopes = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive",
-        ]
-        creds = Credentials.from_service_account_info(creds_data, scopes=scopes)
+        creds = Credentials.from_service_account_info(creds_data, scopes=["https://www.googleapis.com/auth/spreadsheets"])
         gc = gspread.authorize(creds)
         sheet = gc.open_by_key(GOOGLE_SHEETS_ID).sheet1
-        rows_synced = len(sheet.get_all_values())
+
+        existing = sheet.get_all_values()
+        if not existing:
+            sheet.append_row(SHEETS_HEADERS)
+            existing = sheet.get_all_values()
+
+        orders = db.query(Order).order_by(Order.id.asc()).all()
+        cargo_map = {}
+        for order in orders:
+            if order.cargo_id is not None and order.cargo_id not in cargo_map:
+                cargo_map[order.cargo_id] = db.query(Cargo).filter(Cargo.id == order.cargo_id).first()
+
+        for order in orders:
+            cargo = cargo_map.get(order.cargo_id)
+            row_index = len(existing) + 1 + rows_synced
+            sheet.append_row(build_order_row(order, cargo, row_index))
+            rows_synced += 1
     except ImportError:
         errors.append("gspread library not installed — install with: pip install gspread google-auth")
         sync_status = "partial"
@@ -143,9 +159,9 @@ async def trigger_sync(
         "started_at": now,
         "completed_at": completed,
         "rows_synced": rows_synced,
-        "columns_synced": 24,
+        "columns_synced": len(SHEETS_HEADERS),
         "errors": errors,
-        "message": "Sync completed" if sync_status == "completed" else f"Sync {sync_status}",
+        "message": "Sync completed" if sync_status == "completed" else "Sync " + sync_status,
     }
 
     return SyncStatus(**_last_sync)
