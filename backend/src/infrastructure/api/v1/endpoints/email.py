@@ -13,6 +13,8 @@ import logging
 from typing import List, Optional
 from datetime import datetime, timedelta
 import random
+import time
+from collections import defaultdict, deque
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
@@ -60,6 +62,12 @@ class SendEmailRequest(BaseModel):
     template_id: Optional[int] = None
 
 
+class EmailLimitsResponse(BaseModel):
+    remaining_per_hour: int
+    cooldown_seconds: int
+    warn_threshold: int = 40
+
+
 # ── Default templates ─────────────────────────────────────────────────────────
 
 DEFAULT_TEMPLATES: List[EmailTemplate] = [
@@ -100,6 +108,38 @@ DEFAULT_TEMPLATES: List[EmailTemplate] = [
         updated_at="2026-01-01T00:00:00",
     ),
 ]
+
+
+_email_hourly = defaultdict(deque)  # user_id -> deque of send timestamps (last hour)
+_email_last = {}                     # user_id -> last send timestamp
+
+
+def _email_limit_state(user_id):
+    now = time.time()
+    q = _email_hourly[user_id]
+    while q and now - q[0] > 3600:
+        q.popleft()
+    remaining = 50 - len(q)
+    last = _email_last.get(user_id)
+    cooldown = 0
+    if last is not None:
+        cooldown = max(0, int(30 - (now - last)))
+    return q, remaining, cooldown
+
+
+def _check_email_send(user_id):
+    """Возвращает dict с вердиктом лимита. Если allowed - записывает попытку."""
+    q, remaining, cooldown = _email_limit_state(user_id)
+    if remaining <= 0:
+        retry = int(3600 - (time.time() - q[0])) if q else 3600
+        return {"allowed": False, "reason": "hourly_limit", "remaining": 0, "retry_after": retry}
+    if cooldown > 0:
+        return {"allowed": False, "reason": "cooldown", "remaining": remaining, "retry_after": cooldown}
+    now = time.time()
+    q.append(now)
+    _email_last[user_id] = now
+    remaining -= 1
+    return {"allowed": True, "remaining": remaining, "warn": remaining <= 10}
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -168,6 +208,15 @@ async def get_email_history(
     return history
 
 
+@router.get("/limits", response_model=EmailLimitsResponse)
+async def get_email_limits(
+    current_user=Depends(get_current_user),
+):
+    """Оставшийся лимит отправки писем (FR-EMAIL-008)."""
+    q, remaining, cooldown = _email_limit_state(current_user.id)
+    return EmailLimitsResponse(remaining_per_hour=remaining, cooldown_seconds=cooldown)
+
+
 @router.post("/send", status_code=status.HTTP_200_OK)
 async def send_email(
     request: SendEmailRequest,
@@ -179,6 +228,14 @@ async def send_email(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="SMTP not configured. Set SMTP_USERNAME and SMTP_PASSWORD in .env",
         )
+
+    check = _check_email_send(current_user.id)
+    if not check["allowed"]:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Email limit: " + check["reason"] + ". Remaining: " + str(check["remaining"]) + ". Retry in " + str(check["retry_after"]) + "s",
+        )
+
     try:
         import smtplib
         from email.mime.text import MIMEText
