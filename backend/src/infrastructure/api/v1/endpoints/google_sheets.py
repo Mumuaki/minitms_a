@@ -26,6 +26,11 @@ router = APIRouter(prefix="/integrations/google-sheets", tags=["Google Sheets In
 GOOGLE_SHEETS_CREDENTIALS = os.getenv("GOOGLE_SHEETS_CREDENTIALS", "")
 GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID", "")
 
+
+def _configured(value):
+    v = (value or "").strip()
+    return bool(v) and v != "CHANGE_ME"
+
 # Track last sync state in memory
 _last_sync: Optional[dict] = None
 
@@ -59,7 +64,7 @@ async def get_google_sheets_status(
     current_user=Depends(get_current_user),
 ):
     """Статус подключения к Google Sheets."""
-    connected = bool(GOOGLE_SHEETS_CREDENTIALS and GOOGLE_SHEETS_ID)
+    connected = _configured(GOOGLE_SHEETS_CREDENTIALS) and _configured(GOOGLE_SHEETS_ID)
 
     if connected:
         url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEETS_ID}"
@@ -106,7 +111,7 @@ async def trigger_sync(
     """Синхронизировать заказы с Google Sheets (25 столбцов, FR-GSHEET-*)."""
     global _last_sync
 
-    if not GOOGLE_SHEETS_CREDENTIALS or not GOOGLE_SHEETS_ID:
+    if not (_configured(GOOGLE_SHEETS_CREDENTIALS) and _configured(GOOGLE_SHEETS_ID)):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Google Sheets not configured. Set GOOGLE_SHEETS_CREDENTIALS and GOOGLE_SHEETS_ID in .env",
