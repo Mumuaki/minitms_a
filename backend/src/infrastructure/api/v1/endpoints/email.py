@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
+from backend.src.domain.entities.email_template import EmailTemplate as EmailTemplateORM
 
 logger = logging.getLogger(__name__)
 
@@ -152,18 +153,39 @@ def render_template(text: str, context: Dict[str, str]) -> str:
     return text
 
 
+def _orm_to_pydantic(t: EmailTemplateORM) -> EmailTemplate:
+    return EmailTemplate(
+        id=t.id,
+        name=t.name,
+        subject=t.subject,
+        body=t.body,
+        category=t.category,
+        created_at=t.created_at.isoformat() if t.created_at else "",
+        updated_at=t.updated_at.isoformat() if t.updated_at else "",
+    )
+
+
+def _ensure_seed(db: Session) -> None:
+    if db.query(EmailTemplateORM).count() == 0:
+        for t in DEFAULT_TEMPLATES:
+            db.add(EmailTemplateORM(name=t.name, subject=t.subject, body=t.body, category=t.category))
+        db.commit()
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/templates", response_model=List[EmailTemplate])
 async def get_email_templates(
     category: Optional[str] = None,
     current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    """Список шаблонов електронних листів."""
-    templates = DEFAULT_TEMPLATES
+    """Список шаблонов электронных писем."""
+    _ensure_seed(db)
+    q = db.query(EmailTemplateORM).order_by(EmailTemplateORM.id.asc())
     if category:
-        templates = [t for t in templates if t.category == category]
-    return templates
+        q = q.filter(EmailTemplateORM.category == category)
+    return [_orm_to_pydantic(t) for t in q.all()]
 
 
 @router.post("/templates", response_model=EmailTemplate, status_code=status.HTTP_201_CREATED)
@@ -173,21 +195,44 @@ async def create_email_template(
     body: str,
     category: str = "general",
     current_user=Depends(require_role(['administrator','director','dispatcher'])),
+    db: Session = Depends(get_db),
 ):
     """Создать новый шаблон письма."""
-    now = datetime.utcnow().isoformat()
-    new_id = len(DEFAULT_TEMPLATES) + 1
-    template = EmailTemplate(
-        id=new_id,
-        name=name,
-        subject=subject,
-        body=body,
-        category=category,
-        created_at=now,
-        updated_at=now,
-    )
-    DEFAULT_TEMPLATES.append(template)
-    return template
+    _ensure_seed(db)
+    if db.query(EmailTemplateORM).filter(EmailTemplateORM.name == name).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Template with this name already exists")
+    t = EmailTemplateORM(name=name, subject=subject, body=body, category=category)
+    db.add(t)
+    db.commit()
+    db.refresh(t)
+    return _orm_to_pydantic(t)
+
+
+@router.put("/templates/{template_id}", response_model=EmailTemplate)
+async def update_email_template(
+    template_id: int,
+    name: Optional[str] = None,
+    subject: Optional[str] = None,
+    body: Optional[str] = None,
+    category: Optional[str] = None,
+    current_user=Depends(require_role(['administrator','director','dispatcher'])),
+    db: Session = Depends(get_db),
+):
+    """Редактировать шаблон письма (FR-EMAIL-003)."""
+    t = db.query(EmailTemplateORM).filter(EmailTemplateORM.id == template_id).first()
+    if not t:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email template not found")
+    if name is not None:
+        t.name = name
+    if subject is not None:
+        t.subject = subject
+    if body is not None:
+        t.body = body
+    if category is not None:
+        t.category = category
+    db.commit()
+    db.refresh(t)
+    return _orm_to_pydantic(t)
 
 
 @router.get("/history", response_model=List[EmailHistoryItem])
@@ -231,6 +276,7 @@ async def get_email_limits(
 async def send_email(
     request: SendEmailRequest,
     current_user=Depends(require_role(['administrator','director','dispatcher'])),
+    db: Session = Depends(get_db),
 ):
     """Отправить письмо через SMTP."""
     if not SMTP_USERNAME:
@@ -249,7 +295,7 @@ async def send_email(
     subject = request.subject
     body = request.body
     if request.template_id is not None:
-        template = next((t for t in DEFAULT_TEMPLATES if t.id == request.template_id), None)
+        template = db.query(EmailTemplateORM).filter(EmailTemplateORM.id == request.template_id).first()
         if template is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
