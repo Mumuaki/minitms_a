@@ -12,6 +12,8 @@ from backend.src.application.use_cases.fleet.refresh_vehicle_location import Ref
 from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 from pydantic import BaseModel
 from backend.src.domain.entities.vehicle import Vehicle, VehicleStatus as EntityVehicleStatus
+from datetime import date
+from backend.src.domain.entities.order import Order
 
 router = APIRouter(prefix="/fleet", tags=["Fleet"])
 
@@ -95,3 +97,36 @@ def update_vehicle_status(
     db.commit()
     db.refresh(vehicle)
     return VehicleResponse.model_validate(vehicle)
+
+
+
+class TripHistoryItem(BaseModel):
+    id: int
+    start_date: date
+    end_date: date
+    revenue: float
+    margin: float
+    distance: float
+    status: str
+
+
+@router.get("/{vehicle_id}/history", response_model=List[TripHistoryItem])
+def get_vehicle_history(
+    vehicle_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """История рейсов ТС (FR-FLEET-004) — из фактических заказов."""
+    orders = db.query(Order).filter(Order.vehicle_id == vehicle_id).order_by(Order.start_date.desc()).all()
+    return [
+        TripHistoryItem(
+            id=o.id,
+            start_date=o.start_date,
+            end_date=o.end_date,
+            revenue=o.revenue,
+            margin=o.margin,
+            distance=o.distance,
+            status=o.status.value if hasattr(o.status, "value") else o.status,
+        )
+        for o in orders
+    ]
