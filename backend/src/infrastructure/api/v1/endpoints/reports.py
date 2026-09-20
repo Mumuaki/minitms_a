@@ -148,6 +148,56 @@ async def get_financial_report(
     }
 
 
+@router.get("/forecast")
+async def get_forecast(
+    period_start: Optional[date] = None,
+    period_end: Optional[date] = None,
+    order_repo: OrderRepository = Depends(get_order_repository),
+    plan_repo: PlanRepository = Depends(get_plan_repository),
+    current_user=Depends(get_current_user),
+):
+    """Прогноз выполнения плана на конец периода (FR-PLAN-007) — линейная проекция факта."""
+    import calendar
+    if not period_start:
+        now = datetime.now()
+        period_start = date(now.year, now.month, 1)
+    if not period_end:
+        period_end = date(period_start.year, period_start.month, calendar.monthrange(period_start.year, period_start.month)[1])
+
+    plans = plan_repo.get_all_for_period(period_start, period_end)
+    orders = order_repo.get_all_for_period(period_start, period_end)
+    plan_rev = sum(p.revenue_target for p in plans)
+    plan_margin = sum(p.margin_target for p in plans)
+    plan_dist = sum(p.distance_target for p in plans)
+    fact_rev = sum(o.revenue or 0.0 for o in orders)
+    fact_margin = sum(o.margin or 0.0 for o in orders)
+    fact_dist = sum(o.distance or 0.0 for o in orders)
+
+    today = date.today()
+    total_days = (period_end - period_start).days + 1
+    if today < period_start:
+        elapsed = 0
+    elif today > period_end:
+        elapsed = total_days
+    else:
+        elapsed = (today - period_start).days + 1
+    ratio = (total_days / elapsed) if elapsed > 0 else 1.0
+
+    def pct(f, p):
+        return round(f / p * 100, 1) if p else 0.0
+
+    return {
+        "period_start": str(period_start),
+        "period_end": str(period_end),
+        "elapsed_days": elapsed,
+        "total_days": total_days,
+        "plan": {"revenue": plan_rev, "margin": plan_margin, "distance": plan_dist},
+        "fact": {"revenue": fact_rev, "margin": fact_margin, "distance": fact_dist},
+        "forecast": {"revenue": round(fact_rev * ratio, 2), "margin": round(fact_margin * ratio, 2), "distance": round(fact_dist * ratio, 2)},
+        "completion_pct": {"revenue": pct(fact_rev, plan_rev), "margin": pct(fact_margin, plan_margin), "distance": pct(fact_dist, plan_dist)},
+    }
+
+
 @router.get("/export")
 async def export_reports(
     format: str = "csv",
