@@ -1,28 +1,31 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  Users, 
-  LayoutDashboard, 
-  Settings, 
-  Truck, 
-  Package, 
-  FileText, 
+import {
+  Users,
+  LayoutDashboard,
+  Settings,
+  Truck,
+  Package,
+  FileText,
   LogOut,
   DollarSign,
   Navigation
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const MENU_ITEMS = [
-  { icon: LayoutDashboard, label: 'Дашборд', path: '/' },
-  { icon: Users, label: 'Пользователи', path: '/users' },
-  { icon: Truck, label: 'Автопарк', path: '/fleet' },
-  { icon: Navigation, label: 'GPS трекер', path: '/gps' },
-  { icon: Package, label: 'Грузы', path: '/loads' },
-  { icon: DollarSign, label: 'Финансы', path: '/finance' },
-  { icon: FileText, label: 'Отчеты', path: '/reports' },
-  { icon: Settings, label: 'Настройки', path: '/settings' },
+  { icon: LayoutDashboard, key: 'dashboard', path: '/' },
+  { icon: Users, key: 'users', path: '/users' },
+  { icon: Truck, key: 'fleet', path: '/fleet' },
+  { icon: Navigation, key: 'gps', path: '/gps' },
+  { icon: Package, key: 'loads', path: '/loads' },
+  { icon: DollarSign, key: 'finance', path: '/finance' },
+  { icon: FileText, key: 'reports', path: '/reports' },
+  { icon: Settings, key: 'settings', path: '/settings' },
 ];
 
 export const Sidebar = () => {
+  const { t } = useLanguage();
+
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     window.location.reload();
@@ -41,12 +44,12 @@ export const Sidebar = () => {
           <NavLink
             key={item.path}
             to={item.path}
-            className={({ isActive }) => 
+            className={({ isActive }) =>
               `nav-item ${isActive ? 'active' : ''}`
             }
           >
             <item.icon size={20} />
-            <span>{item.label}</span>
+            <span>{t(item.key)}</span>
           </NavLink>
         ))}
       </nav>
@@ -54,7 +57,7 @@ export const Sidebar = () => {
       <div className="sidebar-footer">
         <button onClick={handleLogout} className="nav-item logout-btn">
           <LogOut size={20} />
-          <span>Выйти</span>
+          <span>{t('logout')}</span>
         </button>
       </div>
     </aside>

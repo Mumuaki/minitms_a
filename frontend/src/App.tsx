@@ -13,6 +13,7 @@ import './index.css';
 import { useEffect, useState } from 'react';
 
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 // Защищенный маршрут: рендерит children внутри MainLayout только если авторизован
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
@@ -42,7 +43,8 @@ function App() {
 
   return (
     <ThemeProvider>
-      <BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/login" element={
             isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
@@ -100,6 +102,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }
