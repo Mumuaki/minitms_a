@@ -74,18 +74,18 @@ async def get_dashboard_stats(
     total_plan_margin = sum(p.margin_target for p in plans)
     total_plan_dist = sum(p.distance_target for p in plans)
     
-    # Заглушки для факта, пока не реализован сбор со всех авто (для примера)
-    total_fact_revenue = 0.0
-    total_fact_margin = 0.0
-    total_fact_dist = 0.0
+    orders = order_repo.get_all_for_period(period_start, period_end)
+    total_fact_revenue = sum(o.revenue or 0.0 for o in orders)
+    total_fact_margin = sum(o.margin or 0.0 for o in orders)
+    total_fact_dist = sum(o.distance or 0.0 for o in orders)
     
     def get_color(fact, plan):
-        if plan == 0:
+        if plan <= 0:
             return "green" if fact >= 0 else "red"
-        deviation = (plan - fact) / plan
-        if deviation <= 0:
+        shortfall = (plan - fact) / plan
+        if shortfall <= 0.10:
             return "green"
-        if deviation < 0.1:
+        if shortfall <= 0.20:
             return "yellow"
         return "red"
         
@@ -116,11 +116,36 @@ async def get_dashboard_stats(
 async def get_financial_report(
     period_start: date,
     period_end: date,
+    order_repo: OrderRepository = Depends(get_order_repository),
     current_user=Depends(get_current_user),
 ):
-    """Детальный отчет по рентабельности. Возвращает список заказов и агрегацию."""
-    # Заглушка до реализации
-    return {"status": "ok", "message": "Detailed financial report will be implemented in future iterations."}
+    """Детальный отчёт по рентабельности: список заказов и агрегация за период."""
+    orders = order_repo.get_all_for_period(period_start, period_end)
+    total_revenue = sum(o.revenue or 0.0 for o in orders)
+    total_margin = sum(o.margin or 0.0 for o in orders)
+    total_distance = sum(o.distance or 0.0 for o in orders)
+    return {
+        "period_start": str(period_start),
+        "period_end": str(period_end),
+        "orders_count": len(orders),
+        "total_revenue": total_revenue,
+        "total_margin": total_margin,
+        "total_distance": total_distance,
+        "avg_rate": (total_revenue / total_distance) if total_distance > 0 else 0.0,
+        "orders": [
+            {
+                "id": o.id,
+                "vehicle_id": o.vehicle_id,
+                "revenue": o.revenue,
+                "margin": o.margin,
+                "distance": o.distance,
+                "start_date": str(o.start_date),
+                "end_date": str(o.end_date),
+                "status": o.status.value if hasattr(o.status, "value") else o.status,
+            }
+            for o in orders
+        ],
+    }
 
 
 @router.get("/export")

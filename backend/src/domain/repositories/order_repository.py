@@ -16,5 +16,9 @@ class OrderRepository(ABC):
         pass
 
     @abstractmethod
+    def get_all_for_period(self, start: date, end: date) -> List[Order]:
+        pass
+
+    @abstractmethod
     def save(self, order: Order) -> Order:
         pass

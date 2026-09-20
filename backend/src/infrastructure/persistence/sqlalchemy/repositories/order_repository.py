@@ -22,6 +22,12 @@ class SqlAlchemyOrderRepository(OrderRepository):
             Order.end_date <= end
         ).all()
 
+    def get_all_for_period(self, start: date, end: date) -> List[Order]:
+        return self.session.query(Order).filter(
+            Order.start_date >= start,
+            Order.end_date <= end
+        ).all()
+
     def save(self, order: Order) -> Order:
         self.session.add(order)
         self.session.commit()
