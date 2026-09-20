@@ -150,8 +150,8 @@ async def trigger_sync(
         sheet = gc.open_by_key(GOOGLE_SHEETS_ID).sheet1
 
         existing = sheet.get_all_values()
-        if not existing:
-            sheet.append_row(SHEETS_HEADERS)
+        if not existing or not any(cell for row in existing for cell in row):
+            sheet.update('A1', [SHEETS_HEADERS])
             existing = sheet.get_all_values()
 
         orders = db.query(Order).order_by(Order.id.asc()).all()
