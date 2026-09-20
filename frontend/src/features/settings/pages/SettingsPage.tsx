@@ -4,12 +4,24 @@ import { apiClient } from '@/infrastructure/api/client';
 
 const LANGS = ['ru', 'en', 'sk', 'pl'];
 
+const urlBase64ToUint8Array = (base64String: string) => {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
+
 export const SettingsPage = () => {
   const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [sys, setSys] = useState<any>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pushMsg, setPushMsg] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -33,6 +45,40 @@ export const SettingsPage = () => {
       setMsg('Сохранено');
     } catch (e: any) {
       setMsg('Ошибка сохранения');
+    }
+  };
+
+  const enablePush = async () => {
+    setPushMsg(null);
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        setPushMsg('Браузер не поддерживает push-уведомления');
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setPushMsg('Разрешение на уведомления не выдано');
+        return;
+      }
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      const { data } = await apiClient.get('/notifications/webpush/public-key');
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(data.public_key),
+      });
+      await apiClient.post('/notifications/webpush/subscribe', { subscription: sub.toJSON() });
+      setPushMsg('Уведомления включены');
+    } catch (e: any) {
+      setPushMsg('Ошибка включения: ' + (e?.message || ''));
+    }
+  };
+
+  const sendTestPush = async () => {
+    try {
+      await apiClient.post('/notifications/webpush/test');
+      setPushMsg('Тестовое уведомление отправлено');
+    } catch (e: any) {
+      setPushMsg('Ошибка теста: ' + (e?.response?.data?.detail || e?.message || ''));
     }
   };
 
@@ -72,6 +118,17 @@ export const SettingsPage = () => {
           </div>
         </div>
       )}
+
+      <div className="card mb-4">
+        <h2 className="text-lg font-medium mb-3">Уведомления (Web-Push)</h2>
+        <p className="text-sm text-muted mb-3">Браузерные push-уведомления о выгодных грузах.</p>
+        <div className="flex gap-2 mb-2">
+          <button type="button" onClick={enablePush} className="btn btn-primary">Включить уведомления</button>
+          <button type="button" onClick={sendTestPush} className="btn">Отправить тестовое</button>
+        </div>
+        {pushMsg && <p className="text-xs text-muted">{pushMsg}</p>}
+      </div>
+
       {sys && (
         <div className="card">
           <h2 className="text-lg font-medium mb-3">Системные настройки</h2>

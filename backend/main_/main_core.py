@@ -19,6 +19,7 @@ from backend.src.infrastructure.api.v1.endpoints import (
     reports,
     orders,
     notifications,
+    webpush,
 )
 
 app = FastAPI(
@@ -62,6 +63,7 @@ app.include_router(vehicles.router, prefix=api_v1_prefix)
 app.include_router(reports.router, prefix=api_v1_prefix)
 app.include_router(orders.router, prefix=api_v1_prefix)
 app.include_router(notifications.router, prefix=api_v1_prefix)
+app.include_router(webpush.router, prefix=api_v1_prefix)
 
 
 @app.get("/health", tags=["System"])
