@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { RefreshCw, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, Search, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { LoadsTable } from './LoadsTable';
 import { apiClient } from '../../infrastructure/api/client';
 
@@ -27,6 +27,8 @@ const INITIAL_SEARCH: SearchFormData = {
   length_to: '13.6',
 };
 
+const SAVED_FILTERS_KEY = 'minitms.loads.searchFilters';
+
 export const LoadsPage = () => {
   const { t } = useLanguage();
   const [loads, setLoads] = useState<any[]>([]);
@@ -36,6 +38,7 @@ export const LoadsPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(true);
+  const [filtersSaved, setFiltersSaved] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -58,9 +61,34 @@ export const LoadsPage = () => {
     loadData();
   }, []);
 
+  // Восстановление сохранённых фильтров (FR-UI-005)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SAVED_FILTERS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      setSearchForm({
+        loading: String(parsed.loading ?? ''),
+        unloading: String(parsed.unloading ?? ''),
+        loading_radius: Number(parsed.loading_radius ?? 75),
+        unloading_radius: Number(parsed.unloading_radius ?? 75),
+        weight_to: String(parsed.weight_to ?? '24.0'),
+        length_to: String(parsed.length_to ?? '13.6'),
+      });
+    } catch {
+      // повреждённые данные игнорируем
+    }
+  }, []);
+
   const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSearchForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveFilters = () => {
+    localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(searchForm));
+    setFiltersSaved(true);
+    window.setTimeout(() => setFiltersSaved(false), 2000);
   };
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
@@ -210,9 +238,18 @@ export const LoadsPage = () => {
               </div>
             )}
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
               <button
-                type="submit"
+                type="button"
+                onClick={handleSaveFilters}
+                className="btn flex items-center gap-2"
+                title="Сохранить фильтры"
+              >
+                <Save size={16} />
+                {filtersSaved ? 'Сохранено' : 'Сохранить фильтры'}
+              </button>
+              <button
+                type="submit" 
                 disabled={isSearching}
                 className="btn bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-wait flex items-center gap-2 px-6"
               >
