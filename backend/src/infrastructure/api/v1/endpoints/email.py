@@ -10,7 +10,7 @@ Email Communication Endpoints.
 
 import os
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import random
 import time
@@ -60,6 +60,7 @@ class SendEmailRequest(BaseModel):
     subject: str
     body: str
     template_id: Optional[int] = None
+    variables: Optional[Dict[str, str]] = None
 
 
 class EmailLimitsResponse(BaseModel):
@@ -74,8 +75,8 @@ DEFAULT_TEMPLATES: List[EmailTemplate] = [
     EmailTemplate(
         id=1,
         name="cargo_offer",
-        subject="Пропозиція вантажу — {cargo_id}",
-        body="Шановний партнере,\n\nПропонуємо вантаж {cargo_id} за маршрутом {route}.\n\nЦіна: {price} EUR\n\nЗ повагою,\nMiniTMS",
+        subject="Предложение по грузоперевозке {route}",
+        body="Уважаемый(ая) {contact_person},\n\nНаша компания {company_name} готова выполнить перевозку:\n\nМаршрут: {route}\nДетали груза: {cargo_details}\nПредлагаемая цена: {price}\n\nБудем рады сотрудничеству.\n\nС уважением,\n{sender_signature}",
         category="cargo",
         created_at="2026-01-01T00:00:00",
         updated_at="2026-01-01T00:00:00",
@@ -140,6 +141,15 @@ def _check_email_send(user_id):
     _email_last[user_id] = now
     remaining -= 1
     return {"allowed": True, "remaining": remaining, "warn": remaining <= 10}
+
+
+def render_template(text: str, context: Dict[str, str]) -> str:
+    """Подставляет переменные вида {name} в текст шаблона (FR-EMAIL-002)."""
+    if not context:
+        return text
+    for key, value in context.items():
+        text = text.replace("{" + key + "}", str(value))
+    return text
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -236,19 +246,34 @@ async def send_email(
             detail="Email limit: " + check["reason"] + ". Remaining: " + str(check["remaining"]) + ". Retry in " + str(check["retry_after"]) + "s",
         )
 
+    subject = request.subject
+    body = request.body
+    if request.template_id is not None:
+        template = next((t for t in DEFAULT_TEMPLATES if t.id == request.template_id), None)
+        if template is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Email template not found",
+            )
+        subject = template.subject
+        body = template.body
+    variables = request.variables or {}
+    subject = render_template(subject, variables)
+    body = render_template(body, variables)
+
     try:
         import smtplib
         from email.mime.text import MIMEText
         smtp_password = os.getenv("SMTP_PASSWORD", "")
-        msg = MIMEText(request.body, "plain", "utf-8")
-        msg["Subject"] = request.subject
+        msg = MIMEText(body, "plain", "utf-8")
+        msg["Subject"] = subject
         msg["From"] = SMTP_FROM
         msg["To"] = request.to
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USERNAME, smtp_password)
             server.send_message(msg)
-        return {"status": "sent", "to": request.to, "subject": request.subject}
+        return {"status": "sent", "to": request.to, "subject": subject}
     except Exception as e:
         logger.error("Email send failed: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
