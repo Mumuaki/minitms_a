@@ -174,14 +174,14 @@ class ImportTransEuOffersUseCase:
             loading_date=None,
             unloading_date=None,
             weight=item.get("weight"),
-            body_type=item.get("body_type"),
+            body_type=(item.get("body_type") or "")[:100] or None,
             price=item.get("price"),
             distance_trans_eu=item.get("distance_trans_eu"),
             distance_osm=None,
             profitability=None,
             is_hidden=False,
-            company_rating=item.get("company_rating"),
-            published_at=item.get("published_at"),
+            company_rating=(item.get("company_rating") or "")[:50] or None,
+            published_at=(item.get("published_at") or "")[:100] or None,
             created_at=""
         )
 
