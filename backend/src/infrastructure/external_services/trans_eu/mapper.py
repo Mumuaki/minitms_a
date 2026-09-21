@@ -4,13 +4,32 @@ Converts raw dictionary data from parser into normalized domain structures.
 """
 from typing import Dict, Any, Optional
 import re
+import json
 from datetime import datetime
+
+FORBIDDEN_EQUIPMENT_KEYWORDS = [
+    "winda", "taillift", "tail-lift", "tail lift", "tailift", "liftgate", "lift gate",
+    "palletjack", "paleciak", "pallet jack", "hubwagen", "huckepack",
+    "гидроборт", "подъемник", "подъёмник", "рокла", "рохля", "лифтборт",
+]
+
+
+def _contains_forbidden_equipment(raw_data: Dict[str, Any]) -> bool:
+    text = json.dumps(raw_data, ensure_ascii=False).lower()
+    for kw in FORBIDDEN_EQUIPMENT_KEYWORDS:
+        if kw.lower() in text:
+            return True
+    return False
+
 
 def map_to_cargo(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Maps raw extracted data to a normalized Cargo dict (DTO compatible).
     """
     
+    if _contains_forbidden_equipment(raw_data):
+        return None
+
     # 1. Price Normalization
     price_raw = raw_data.get("price_raw", "")
     price, currency = _parse_price(price_raw)

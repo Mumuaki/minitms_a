@@ -897,7 +897,8 @@ class TransEuClient:
             for raw in raw_offers:
                 try:
                     mapped = mapper.map_to_cargo(raw)
-                    results.append(mapped)
+                    if mapped is not None:
+                        results.append(mapped)
                 except Exception as map_err:
                     logger.warning(f"Failed to map item: {map_err}")
             
@@ -955,7 +956,8 @@ class TransEuClient:
         for raw in raw_offers:
             try:
                 mapped = mapper.map_to_cargo(raw)
-                results.append(mapped)
+                if mapped is not None:
+                    results.append(mapped)
             except Exception as map_err:
                 logger.warning(f"Failed to map item: {map_err}")
         logger.info(f"Successfully mapped {len(results)} offers.")
