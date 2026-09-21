@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { MapPin, EyeOff, CheckCircle } from 'lucide-react';
+import { apiClient } from '../../infrastructure/api/client';
 
 interface Cargo {
   id: string;
@@ -19,22 +21,27 @@ interface LoadsTableProps {
   loads: Cargo[];
   isLoading: boolean;
   onSelect?: (cargo: Cargo) => void;
+  onChanged?: () => void;
 }
 
-const COLOR: Record<string, string> = { RED: '#fecaca', GRAY: '#e5e7eb', YELLOW: '#fef08a', GREEN: '#bbf7d0' };
+const DOT_COLOR: Record<string, string> = { RED: '#FF4444', GRAY: '#9E9E9E', YELLOW: '#FFEB3B', GREEN: '#4CAF50' };
+const ROW_BG: Record<string, string> = { RED: '#ffecec', GRAY: '#f3f3f3', YELLOW: '#fffbe6', GREEN: '#e6f5e6' };
 
-type SortKey = 'external_id' | 'loading_place' | 'unloading_place' | 'loading_date' | 'weight' | 'price' | 'distance_trans_eu' | 'rate_per_km';
+const flagEmoji = (cc?: string) => {
+  if (!cc) return '';
+  return [...cc.toUpperCase()].map((c) => String.fromCodePoint(127397 + c.charCodeAt(0))).join('');
+};
 
-export const LoadsTable = ({ loads, isLoading, onSelect }: LoadsTableProps) => {
-  const [sortKey, setSortKey] = useState<SortKey>('price');
+const desc = (bt?: string) => (bt ? bt.slice(0, 80) : '');
+
+type SortKey = 'rate_per_km' | 'price' | 'loading_place' | 'unloading_place' | 'distance_trans_eu';
+
+export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTableProps) => {
+  const [sortKey, setSortKey] = useState<SortKey>('rate_per_km');
   const [asc, setAsc] = useState(false);
 
-  if (isLoading) {
-    return <div className="text-center p-4">Загрузка…</div>;
-  }
-  if (loads.length === 0) {
-    return <div className="text-center p-4 text-muted">Нет грузов. Запустите импорт из Trans.eu.</div>;
-  }
+  if (isLoading) return <div className="text-center p-4">Загрузка…</div>;
+  if (loads.length === 0) return <div className="text-center p-4 text-muted">Нет грузов.</div>;
 
   const val = (c: Cargo, k: SortKey): any => {
     if (k === 'loading_place') return c.loading_place ? c.loading_place.address : '';
@@ -53,50 +60,57 @@ export const LoadsTable = ({ loads, isLoading, onSelect }: LoadsTableProps) => {
 
   const th = (key: SortKey, label: string) => (
     <th
-      className="px-4 py-2 text-left font-medium cursor-pointer select-none"
-      onClick={() => {
-        if (sortKey === key) setAsc(!asc);
-        else { setSortKey(key); setAsc(false); }
-      }}
+      className="px-3 py-2 text-left font-medium cursor-pointer select-none whitespace-nowrap"
+      onClick={() => { if (sortKey === key) setAsc(!asc); else { setSortKey(key); setAsc(false); } }}
     >
       {label} {sortKey === key ? (asc ? '↑' : '↓') : ''}
     </th>
   );
+
+  const act = async (e: React.MouseEvent, fn: () => Promise<void>) => {
+    e.stopPropagation();
+    try { await fn(); } catch { /* ignore */ }
+    onChanged && onChanged();
+  };
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
       <table className="min-w-full divide-y divide-border text-sm">
         <thead className="bg-card">
           <tr>
-            {th('external_id', 'Заявка')}
+            <th className="px-3 py-2 text-left font-medium">Рент.</th>
             {th('loading_place', 'Загрузка')}
             {th('unloading_place', 'Выгрузка')}
-            {th('loading_date', 'Дата')}
-            {th('weight', 'Вес')}
+            <th className="px-3 py-2 text-left font-medium">Описание</th>
+            <th className="px-3 py-2 text-left font-medium">Даты</th>
             {th('distance_trans_eu', 'Дист. (км)')}
-            {th('rate_per_km', '€/км')}
             {th('price', 'Цена (€)')}
+            {th('rate_per_km', '€/км')}
+            <th className="px-3 py-2 text-left font-medium">Действия</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {sorted.map((load) => {
             const cc = load.profitability ? load.profitability.color_code : undefined;
-            const bg = cc ? COLOR[cc] : undefined;
+            const dot = cc ? DOT_COLOR[cc] : '#9E9E9E';
+            const bg = cc ? ROW_BG[cc] : undefined;
             return (
-              <tr
-                key={load.id}
-                style={bg ? { backgroundColor: bg } : undefined}
-                onClick={() => onSelect && onSelect(load)}
-                className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                <td className="px-4 py-2 font-medium">{load.external_id}</td>
-                <td className="px-4 py-2">{load.loading_place ? load.loading_place.address : '—'}</td>
-                <td className="px-4 py-2">{load.unloading_place ? load.unloading_place.address : '—'}</td>
-                <td className="px-4 py-2">{load.loading_date || '—'}</td>
-                <td className="px-4 py-2">{load.weight != null ? load.weight + ' кг' : '—'}</td>
-                <td className="px-4 py-2 text-right">{load.distance_trans_eu || '—'}</td>
-                <td className="px-4 py-2 text-right font-semibold">{load.profitability && load.profitability.rate_per_km != null ? load.profitability.rate_per_km.toFixed(2) : '—'}</td>
-                <td className="px-4 py-2 text-right font-bold">{load.price || '—'}</td>
+              <tr key={load.id} onClick={() => onSelect && onSelect(load)} className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" style={bg ? { backgroundColor: bg } : undefined}>
+                <td className="px-3 py-2"><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', backgroundColor: dot }} /></td>
+                <td className="px-3 py-2">{flagEmoji(load.loading_place && load.loading_place.country_code)} {load.loading_place ? load.loading_place.address : '—'}</td>
+                <td className="px-3 py-2">{flagEmoji(load.unloading_place && load.unloading_place.country_code)} {load.unloading_place ? load.unloading_place.address : '—'}</td>
+                <td className="px-3 py-2 text-muted">{desc(load.body_type)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{load.loading_date || '—'}{load.unloading_date ? ' → ' + load.unloading_date : ''}</td>
+                <td className="px-3 py-2 text-right">{load.distance_trans_eu || '—'}</td>
+                <td className="px-3 py-2 text-right font-bold">{load.price || '—'}</td>
+                <td className="px-3 py-2 text-right font-semibold">{load.profitability && load.profitability.rate_per_km != null ? load.profitability.rate_per_km.toFixed(2) : '—'}</td>
+                <td className="px-3 py-2">
+                  <div className="flex gap-1">
+                    <button title="Открыть на карте" className="p-1 hover:bg-black/10 rounded" onClick={(e) => { e.stopPropagation(); onSelect && onSelect(load); }}><MapPin size={15} /></button>
+                    <button title="Скрыть" className="p-1 hover:bg-black/10 rounded" onClick={(e) => act(e, () => apiClient.patch('/cargos/' + load.id + '/hide'))}><EyeOff size={15} /></button>
+                    <button title="Принять (создать заказ)" className="p-1 hover:bg-black/10 rounded" onClick={(e) => act(e, () => apiClient.post('/cargos/' + load.id + '/accept'))}><CheckCircle size={15} /></button>
+                  </div>
+                </td>
               </tr>
             );
           })}

@@ -300,7 +300,7 @@ export const LoadsPage = () => {
         </div>
       )}
 
-      <LoadsTable loads={filteredLoads} isLoading={loading} onSelect={setSelectedCargo} />
+      <LoadsTable loads={filteredLoads} isLoading={loading} onSelect={setSelectedCargo} onChanged={loadData} />
 
       <Modal isOpen={!!selectedCargo} onClose={() => setSelectedCargo(null)} title="Детали груза">
         {selectedCargo && (

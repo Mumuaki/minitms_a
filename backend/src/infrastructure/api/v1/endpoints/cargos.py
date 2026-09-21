@@ -12,7 +12,7 @@ from typing import Optional, List
 from datetime import date
 
 from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
-from backend.src.infrastructure.api.v1.dependencies import get_current_user
+from backend.src.infrastructure.api.v1.dependencies import get_current_user, require_role
 from backend.src.domain.repositories.cargo_repository import CargoRepository
 from backend.src.infrastructure.persistence.sqlalchemy.repositories.cargo_repository_impl import CargoRepositoryImpl
 from backend.src.application.use_cases.cargo.search_cargos import SearchCargosUseCase
@@ -423,3 +423,55 @@ def _parse_date(date_str: Optional[str]) -> Optional[date]:
         return datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         raise ValueError(f"Invalid date format: {date_str}. Use YYYY-MM-DD")
+
+@router.patch("/{cargo_id}/hide")
+def hide_cargo(
+    cargo_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
+):
+    """Скрыть/показать груз (blacklist, FR-UI-009)."""
+    import uuid as _uuid
+    from backend.src.infrastructure.persistence.sqlalchemy.models.cargo_model import Cargo
+    try:
+        _id = _uuid.UUID(cargo_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid cargo id")
+    cargo = db.query(Cargo).filter(Cargo.id == _id).first()
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    cargo.is_hidden = not cargo.is_hidden
+    db.commit()
+    return {"status": "ok", "is_hidden": cargo.is_hidden}
+
+
+@router.post("/{cargo_id}/accept")
+def accept_cargo(
+    cargo_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
+):
+    """Принять груз — создать заказ (Actions, spec_loads.md)."""
+    import uuid as _uuid
+    from datetime import date as _date
+    from backend.src.infrastructure.persistence.sqlalchemy.models.cargo_model import Cargo
+    from backend.src.domain.entities.order import Order, OrderStatus
+    try:
+        _id = _uuid.UUID(cargo_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid cargo id")
+    cargo = db.query(Cargo).filter(Cargo.id == _id).first()
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    order = Order(
+        cargo_id=cargo.id,
+        revenue=float(cargo.price or 0),
+        distance=float(cargo.distance_trans_eu or 0),
+        start_date=cargo.loading_date or _date.today(),
+        end_date=cargo.unloading_date or _date.today(),
+        status=OrderStatus.PLANNED,
+    )
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    return {"status": "ok", "order_id": order.id}
