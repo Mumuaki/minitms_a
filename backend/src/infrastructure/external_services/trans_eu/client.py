@@ -1137,7 +1137,7 @@ class TransEuClient:
             seen = set()
             attempts = [x for x in attempts if not (x in seen or seen.add(x))]
             
-            modal_selector = 'div#mainRegionDropdowns span[class*="Option__option"]'
+            modal_selector = 'div[class*="SelectOptionContainer__container"]'
             success = False
             
             # Find the input element inside container
@@ -1161,7 +1161,7 @@ class TransEuClient:
                     await self.page.keyboard.press("Backspace")
                 await self.page.wait_for_timeout(1000)
 
-                # 2. Focus and Type
+                # 2. Focus and Type (click label to open dropdown, then type)
                 await input_el.evaluate("el => { el.removeAttribute('readonly'); el.readOnly = false; }")
                 
                 label_parent = container.locator('label[data-ctx="select"]').first
@@ -1176,34 +1176,35 @@ class TransEuClient:
                 await self.page.keyboard.type(attempt, delay=150)
                 await self.page.wait_for_timeout(2000)
                 
-                # 3. Wait for Modal presence (Confirmation of active field)
+                # 3. Wait for options and click best match (skip hint rows)
                 try:
-                    await self.page.wait_for_selector(modal_selector, timeout=8000)
-                    
-                    # 4. Click best match to fixate (pick the one with maximum information / longest text)
                     options_locator = self.page.locator(modal_selector)
+                    await options_locator.first.wait_for(state="visible", timeout=8000)
                     options_count = await options_locator.count()
-                    if options_count == 0:
-                        raise Exception("No options in dropdown")
-                        
-                    best_index = 0
+                    
+                    best_index = -1
                     longest_len = 0
                     for idx in range(options_count):
                         text = await options_locator.nth(idx).text_content()
-                        text_len = len(text.strip()) if text else 0
-                        if text_len > longest_len:
-                            longest_len = text_len
+                        txt = (text or "").strip()
+                        if "как минимум" in txt or "at least" in txt.lower():
+                            continue
+                        if len(txt) > longest_len:
+                            longest_len = len(txt)
                             best_index = idx
                             
+                    if best_index < 0:
+                        logger.warning(f"No valid options for '{attempt}'")
+                        continue
+                        
                     logger.info(f"Selecting option at index {best_index} with text length {longest_len}")
-                    dropdown_option = options_locator.nth(best_index)
-                    await dropdown_option.click(force=True)
+                    await options_locator.nth(best_index).click(force=True)
                     
                     logger.info(f"Success at Step {step_num} with '{attempt}'")
                     success = True
                     break
-                except Exception:
-                    logger.warning(f"Modal did not appear for step {step_num} ('{attempt}').")
+                except Exception as e:
+                    logger.warning(f"Modal did not appear for step {step_num} ('{attempt}'): {e}")
                     continue
 
             if not success:
