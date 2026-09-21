@@ -123,7 +123,8 @@ async def import_trans_eu(
     unloading_date_to: Optional[str] = Query(None, description="Дата выгрузки по (DD.MM.YYYY)"),
     weight_to: str = Query("0.9", description="Макс вес"),
     length_to: Optional[str] = Query(None, description="Макс длина"),
-    use_case: ImportTransEuOffersUseCase = Depends(get_import_trans_eu_offers_use_case)
+    use_case: ImportTransEuOffersUseCase = Depends(get_import_trans_eu_offers_use_case),
+    db: Session = Depends(get_db),
 ):
     try:
         result = await use_case.execute(
@@ -136,7 +137,8 @@ async def import_trans_eu(
             unloading_date_from=unloading_date_from,
             unloading_date_to=unloading_date_to,
             weight_to=weight_to,
-            length_to=length_to
+            length_to=length_to,
+            db=db
         )
         return [c.dict() for c in result]
     except Exception as e:
@@ -151,10 +153,11 @@ async def import_trans_eu(
 async def import_trans_eu_manual(
     current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
     timeout_seconds: int = Query(600, description="Сколько секунд ждать ручной поиск"),
-    use_case: ImportTransEuOffersUseCase = Depends(get_import_trans_eu_offers_use_case)
+    use_case: ImportTransEuOffersUseCase = Depends(get_import_trans_eu_offers_use_case),
+    db: Session = Depends(get_db),
 ):
     try:
-        result = await use_case.execute_manual(timeout_seconds=timeout_seconds)
+        result = await use_case.execute_manual(timeout_seconds=timeout_seconds, db=db)
         return [c.dict() for c in result]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
