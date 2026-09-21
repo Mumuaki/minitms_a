@@ -113,32 +113,25 @@ export const LoadsPage = () => {
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!searchForm.loading.trim()) {
-      setSearchError('Укажите место загрузки');
-      return;
-    }
-
+    // Полуавтоматический режим: оператор вручную выполняет поиск в удалённом браузере,
+    // а скрапер автоматически парсит и сохраняет результат.
     setIsSearching(true);
     setSearchError(null);
 
     try {
-      await apiClient.post('/scraping/import_trans_eu', null, {
-        params: {
-          loading: searchForm.loading,
-          unloading: searchForm.unloading,
-          loading_radius: searchForm.loading_radius,
-          unloading_radius: searchForm.unloading_radius,
-          weight_to: searchForm.weight_to,
-          length_to: searchForm.length_to,
-        },
-        timeout: 180000, // 3 мин — скрапинг может быть долгим
+      // Открываем удалённый браузер (noVNC) в новой вкладке
+      window.open('http://89.167.70.67:6080', '_blank');
+
+      await apiClient.post('/scraping/import_trans_eu_manual', null, {
+        params: { timeout_seconds: 600 },
+        timeout: 650000, // до 10 минут — ручной поиск оператором
       });
 
-      // После успешного скрапинга — обновляем таблицу
+      // После импорта — обновляем таблицу
       await loadData();
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
-      setSearchError(detail ? String(detail) : `Ошибка скрапинга: ${err.message}`);
+      setSearchError(detail ? String(detail) : `Ошибка импорта: ${err.message}`);
     } finally {
       setIsSearching(false);
     }
@@ -273,7 +266,7 @@ export const LoadsPage = () => {
                 className="btn bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-wait flex items-center gap-2 px-6"
               >
                 <Search size={16} className={isSearching ? 'animate-spin' : ''} />
-                {isSearching ? 'Поиск грузов...' : 'Запустить поиск'}
+                {isSearching ? 'Ждём поиск в браузере... (до 10 мин)' : 'Импорт из Trans.eu'}
               </button>
             </div>
           </form>
