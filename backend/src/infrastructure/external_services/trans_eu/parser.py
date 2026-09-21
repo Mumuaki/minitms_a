@@ -6,93 +6,55 @@ Contains the JavaScript logic to be executed in the browser for efficient data e
 def get_extraction_script() -> str:
     """
     Returns the JavaScript function to extract offers from the DOM.
-    This script is executed via page.evaluate().
+    Uses the actual data-ctx attributes of the Trans.eu offers list.
     """
     return """
     () => {
         const offers = [];
-        
-        // Находим все строки предложений (поддерживаем и старую, и новую верстку)
-        const candidateRows = document.querySelectorAll(
-            'div[data-ctx="row"], ' +
-            'div[class*="LoadsListRow"], ' +
-            'div[data-ctx="offer-list-item"], ' +
-            'li[class*="OfferList__item"], ' + 
-            'div[class*="virtuoso-item"], ' +
-            'div[role="row"]' 
-        );
+        const rows = document.querySelectorAll('div[data-ctx="row"]');
 
-        candidateRows.forEach(row => {
-            if (row.innerText.length < 10) return;
+        rows.forEach(row => {
+            const text = row.innerText;
+            if (text.length < 10) return;
 
-            // 1. Places (Загрузка / Выгрузка)
-            const loadingContainer = row.querySelector('[class*="loadingPlace"]');
-            const unloadingContainer = row.querySelector('[class*="unloadingPlace"]');
-            
-            const loadingPlaceEl = loadingContainer ? loadingContainer.querySelector('[data-ctx="place"]') : null;
-            const unloadingPlaceEl = unloadingContainer ? unloadingContainer.querySelector('[data-ctx="place"]') : null;
-            
-            const loadingPlace = loadingPlaceEl ? loadingPlaceEl.innerText.trim() : (loadingContainer ? loadingContainer.innerText.trim() : null);
-            const unloadingPlace = unloadingPlaceEl ? unloadingPlaceEl.innerText.trim() : (unloadingContainer ? unloadingContainer.innerText.trim() : null);
+            // 1. Places
+            const loadingEl = row.querySelector('[data-ctx="loading-place-cell"] [data-ctx="place"]')
+                || row.querySelector('[data-ctx="loading-place-cell"]');
+            const unloadingEl = row.querySelector('[data-ctx="unloading-place-cell"] [data-ctx="place"]')
+                || row.querySelector('[data-ctx="unloading-place-cell"]');
+            const loadingPlace = loadingEl ? loadingEl.innerText.trim() : null;
+            const unloadingPlace = unloadingEl ? unloadingEl.innerText.trim() : null;
 
             // 2. Dates
-            const loadingDateEl = loadingContainer ? loadingContainer.querySelector('[data-ctx*="date"]') : null;
-            const unloadingDateEl = unloadingContainer ? unloadingContainer.querySelector('[data-ctx*="date"]') : null;
-            
+            const loadingDateEl = row.querySelector('[data-ctx="loading-place-cell-date"]');
+            const unloadingDateEl = row.querySelector('[data-ctx="unloading-place-cell-date"]');
             const loadingDate = loadingDateEl ? loadingDateEl.innerText.trim() : null;
             const unloadingDate = unloadingDateEl ? unloadingDateEl.innerText.trim() : null;
 
-            // 3. Cargo Info (собираем вес, ldm и тип кузова из спанов)
-            let weightText = "";
-            let ldmText = "";
-            let bodyParts = [];
-            
-            row.querySelectorAll('span').forEach(s => {
-                const txt = s.innerText.trim();
-                if (!txt) return;
-                
-                // Пропускаем служебные спаны
-                if (s.getAttribute('data-test') === 'Exchange.CompanyName') return;
-                if (s.getAttribute('data-ctx') === 'is-price') return;
-                if (s.getAttribute('data-ctx') === 'rating') return;
-                
-                if (txt.includes(' т') || txt.includes(' t')) {
-                    weightText = txt;
-                } else if (txt.includes('ldm') || txt.includes(' LDM')) {
-                    ldmText = txt;
-                } else if (txt.length > 3 && !txt.includes('km') && !txt.includes('дней') && !txt.includes('€') && !txt.includes('PLN') && !txt.includes('Предложения')) {
-                    if (!bodyParts.includes(txt)) {
-                        bodyParts.push(txt);
-                    }
-                }
-            });
-            
-            const cargoInfoParts = [];
-            if (weightText) cargoInfoParts.push(weightText);
-            if (bodyParts.length > 0) cargoInfoParts.push(bodyParts.join(', '));
-            if (ldmText) cargoInfoParts.push(ldmText);
-            const cargoInfoRaw = cargoInfoParts.join(', ');
+            // 3. Distance (км)
+            const distEl = row.querySelector('[data-ctx="loading-place-cell-distance"]');
+            const distance = distEl ? distEl.innerText.trim() : null;
 
-            // 4. Price
-            const priceEl = row.querySelector('[data-ctx="is-price"]') || row.querySelector('[class*="price"]');
+            // 4. Cargo info: вес + тип кузова (Грузоподъёмность + Тип ТС)
+            const infoEl = row.querySelector('[data-ctx="offer-info-cell-properties"]');
+            const cargoInfoRaw = infoEl ? infoEl.innerText.trim() : '';
+
+            // 5. Price
+            const priceEl = row.querySelector('[data-ctx="is-price"]');
             const price = priceEl ? priceEl.innerText.trim() : null;
-            
-            // 5. Distance
-            const distanceEl = row.querySelector('[data-ctx="offer-requirements"]') || row.querySelector('[data-ctx="offer-distance"]');
-            const distance = distanceEl ? distanceEl.innerText.trim() : null;
 
-            // 6. Company
-            const companyEl = row.querySelector('[data-test="Exchange.CompanyName"]') || row.querySelector('[class*="company"]');
+            // 6. Company + rating
+            const companyEl = row.querySelector('[data-ctx="personName"]') || row.querySelector('[data-ctx="shipper-cell"]');
             const companyName = companyEl ? companyEl.innerText.trim() : null;
-            
             const ratingEl = row.querySelector('[data-ctx="rating"]');
             const companyRating = ratingEl ? ratingEl.innerText.trim() : null;
 
-            const publishedAtEl = row.querySelector('[data-ctx="publication-time"]') || row.querySelector('[class*="publishedAt"]');
-            const publishedAt = publishedAtEl ? publishedAtEl.innerText.trim() : null;
-
-            // 7. IDs
-            const externalId = row.getAttribute("data-ctx-id") || row.getAttribute("data-freightid") || row.getAttribute("id");
+            // 7. External id (numeric data-ctx like "1079543-12")
+            let externalId = null;
+            row.querySelectorAll('[data-ctx]').forEach(el => {
+                const ctx = el.getAttribute('data-ctx');
+                if (ctx && /^\d+-\d+$/.test(ctx) && !externalId) externalId = ctx;
+            });
 
             offers.push({
                 loading_place_raw: loadingPlace,
@@ -104,7 +66,7 @@ def get_extraction_script() -> str:
                 distance_raw: distance,
                 company_name: companyName,
                 company_rating_raw: companyRating,
-                published_at_raw: publishedAt,
+                published_at_raw: null,
                 external_id: externalId
             });
         });

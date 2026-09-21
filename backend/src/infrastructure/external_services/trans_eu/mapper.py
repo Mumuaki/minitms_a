@@ -107,20 +107,20 @@ def _parse_distance(dist_str: Optional[str]) -> Optional[int]:
     return None
 
 def _parse_cargo_info(info_str: Optional[str]):
-    # e.g. "24t, Curtain, 13.6 ldm"
+    # e.g. "0,1 т, цельномет, ящик, стандарт, штора"
     if not info_str:
         return None, None
-        
+
     weight = None
     body = info_str
-    
-    # Try to extract weight "24 t" or "24t"
-    w_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*t', info_str, re.IGNORECASE)
+
+    # Извлекаем вес "0,1 т" / "24t" и убираем его из описания (типа кузова)
+    w_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*т', info_str, re.IGNORECASE)
     if w_match:
         try:
-            weight = float(w_match.group(1).replace(",", ".")) * 1000 # to kg? spec says float(kg)? Check spec.
-            # Spec says "weight: Float (kg)". 2.4 Entity Cargo.
-        except:
+            weight = float(w_match.group(1).replace(",", ".")) * 1000  # кг
+        except Exception:
             pass
-            
-    return body, weight
+        body = (info_str[:w_match.start()] + info_str[w_match.end():]).strip(" ,")
+
+    return body or None, weight
