@@ -31,13 +31,11 @@ def get_extraction_script() -> str:
             let loadingDate = null;
             let unloadingDate = null;
             if (loadingDateEl) {
-                const lines = loadingDateEl.innerText.split('
-').map(x => x.trim());
+                const lines = loadingDateEl.innerText.split(String.fromCharCode(10)).map(x => x.trim());
                 loadingDate = lines.find(x => /\d{2}\.\d{2}/.test(x)) || loadingDateEl.innerText.trim();
             }
             if (unloadingDateEl) {
-                const lines = unloadingDateEl.innerText.split('
-').map(x => x.trim());
+                const lines = unloadingDateEl.innerText.split(String.fromCharCode(10)).map(x => x.trim());
                 unloadingDate = lines.find(x => /\d{2}\.\d{2}/.test(x)) || unloadingDateEl.innerText.trim();
             }
 
