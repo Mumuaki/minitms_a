@@ -909,6 +909,58 @@ class TransEuClient:
             await self.page.screenshot(path="search_failed.png")
             return False
 
+    async def search_offers_manual(self, timeout_seconds: int = 600):
+        """Полуавтоматический режим: оператор вручную проходит Cloudflare и задаёт фильтры,
+        а скрапер только парсит результаты поиска."""
+        import time
+        if not await self.login():
+            raise Exception("User is not authorized on Trans.eu portal.")
+
+        if "exchange/offers" not in self.page.url:
+            if not await self._navigate_to_offers_via_menu():
+                await self.page.goto("https://platform.trans.eu/exchange/offers", timeout=60000)
+        await self.page.wait_for_timeout(3000)
+
+        logger.info(f"Полуавтоматический режим: ждём ручной поиск оператором (до {timeout_seconds} сек)...")
+        result_selectors = [
+            'div[data-ctx="row"]',
+            'div[class*="LoadsListRow"]',
+            'li[class*="OfferList__item"]',
+            'div[class*="virtuoso-item"]',
+        ]
+        start = time.time()
+        found = False
+        while time.time() - start < timeout_seconds:
+            for sel in result_selectors:
+                try:
+                    if await self.page.locator(sel).count() > 0:
+                        found = True
+                        break
+                except Exception:
+                    pass
+            if found:
+                break
+            await self.page.wait_for_timeout(3000)
+
+        if not found:
+            logger.warning("Результаты поиска не обнаружены за отведённое время. Пробуем парсить текущую страницу.")
+
+        await self.page.wait_for_timeout(3000)
+        logger.info("Extracting search results...")
+        from backend.src.infrastructure.external_services.trans_eu import parser, mapper
+        js_script = parser.get_extraction_script()
+        raw_offers = await self.page.evaluate(js_script)
+        logger.info(f"Extracted {len(raw_offers)} raw items.")
+        results = []
+        for raw in raw_offers:
+            try:
+                mapped = mapper.map_to_cargo(raw)
+                results.append(mapped)
+            except Exception as map_err:
+                logger.warning(f"Failed to map item: {map_err}")
+        logger.info(f"Successfully mapped {len(results)} offers.")
+        return results
+
     async def _set_date_input(self, parent_locator, name: str, index: int, value: str):
         """
         Sets date securely using calendar navigation and ISO ID selectors.

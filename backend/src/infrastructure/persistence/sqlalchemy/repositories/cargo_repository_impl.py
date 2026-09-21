@@ -213,10 +213,14 @@ class CargoRepositoryImpl(CargoRepository):
             set_=update_dict
         ).returning(Cargo)
         
-        result = self._session.execute(stmt)
-        cargo = result.scalar_one()
-        self._session.commit()
-        return self._model_to_dto(cargo)
+        try:
+            result = self._session.execute(stmt)
+            cargo = result.scalar_one()
+            self._session.commit()
+            return self._model_to_dto(cargo)
+        except Exception:
+            self._session.rollback()
+            raise
 
     def delete(self, cargo_id: str) -> None:
         cargo = self._session.query(Cargo).filter(Cargo.id == cargo_id).first()

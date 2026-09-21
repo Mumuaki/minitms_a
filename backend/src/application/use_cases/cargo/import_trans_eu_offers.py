@@ -101,6 +101,37 @@ class ImportTransEuOffersUseCase:
             # BUT, client.stop() kills the playwright process. 
             pass
 
+    async def execute_manual(self, timeout_seconds: int = 600) -> List[CargoDto]:
+        """Полуавтоматический режим: оператор вручную выполняет поиск, скрапер парсит результат."""
+        client = await TransEuClient.get_instance()
+        try:
+            await client.start()
+            if not await client.login():
+                raise Exception("Failed to login to Trans.eu")
+
+            results_list = await client.search_offers_manual(timeout_seconds=timeout_seconds)
+
+            saved_cargos = []
+            if results_list:
+                for item in results_list:
+                    try:
+                        dto = await self._map_dict_to_dto_async(item)
+                        existing = self.cargo_repository.get_by_external_id(dto.external_id)
+                        if existing:
+                            dto.id = existing.id
+                            saved = self.cargo_repository.update(dto)
+                        else:
+                            saved = self.cargo_repository.create(dto)
+                        saved_cargos.append(saved)
+                    except Exception as e:
+                        logger.error(f"Failed to save cargo {item.get('external_id')}: {e}")
+            return saved_cargos
+        except Exception as e:
+            logger.error(f"Manual import failed: {e}")
+            raise e
+        finally:
+            pass
+
     async def _map_dict_to_dto_async(self, item: dict) -> CargoDto:
         """
         Convert mapper dictionary to CargoDto.
@@ -136,7 +167,7 @@ class ImportTransEuOffersUseCase:
 
         dto = CargoDto(
             id="",
-            external_id=item.get("external_id") or f"gen-{item.get('company_name')}-{item.get('price')}",
+            external_id=(item.get("external_id") or f"gen-{item.get('company_name')}-{item.get('price')}")[:100],
             source="trans.eu",
             loading_place=loading_loc,
             unloading_place=unloading_loc,
