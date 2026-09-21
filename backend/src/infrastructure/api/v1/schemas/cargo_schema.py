@@ -35,6 +35,7 @@ class CargoResponse(BaseModel):
     price: Optional[float]
     distance_trans_eu: Optional[int]
     distance_osm: Optional[int]
+    route_polyline: Optional[str]
     profitability: Optional[dict]
     is_hidden: bool
     created_at: str

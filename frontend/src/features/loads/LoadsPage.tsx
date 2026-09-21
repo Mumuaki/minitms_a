@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { RefreshCw, Search, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { LoadsTable } from './LoadsTable';
 import { Modal } from '@/components/ui/Modal';
+import { CargoRouteMap } from '@/components/map/CargoRouteMap';
 import { apiClient } from '../../infrastructure/api/client';
 
 const fetchLoads = async () => {
@@ -312,10 +313,13 @@ export const LoadsPage = () => {
             <p><b>Дата выгрузки:</b> {selectedCargo.unloading_date || '—'}</p>
             <p><b>Вес:</b> {selectedCargo.weight != null ? selectedCargo.weight + ' кг' : '—'}</p>
             <p><b>Тип кузова:</b> {selectedCargo.body_type || '—'}</p>
-            <p><b>Дистанция Trans.eu:</b> {selectedCargo.distance_trans_eu || '—'} км</p>
-            <p><b>Дистанция OSM:</b> {selectedCargo.distance_osm || '—'} км</p>
+            <p><b>Дистанция:</b> подача {selectedCargo.profitability?.empty_run_km != null ? selectedCargo.profitability.empty_run_km.toFixed(0) : 0} км + перевозка {selectedCargo.distance_osm || '—'} км = полная {selectedCargo.profitability?.total_distance != null ? selectedCargo.profitability.total_distance.toFixed(0) : '—'} км</p>
             <p><b>Ставка €/км:</b> {selectedCargo.profitability?.rate_per_km != null ? selectedCargo.profitability.rate_per_km.toFixed(2) : '—'}</p>
             <p><b>Цена:</b> {selectedCargo.price || '—'} €</p>
+            <CargoRouteMap
+              loading={{ lat: selectedCargo.loading_place?.lat, lon: selectedCargo.loading_place?.lon, address: selectedCargo.loading_place?.address || '' }}
+              unloading={{ lat: selectedCargo.unloading_place?.lat, lon: selectedCargo.unloading_place?.lon, address: selectedCargo.unloading_place?.address || '' }}
+            />
           </div>
         )}
       </Modal>

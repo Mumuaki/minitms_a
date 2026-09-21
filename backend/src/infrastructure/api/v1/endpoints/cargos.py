@@ -41,6 +41,7 @@ def _dto_to_response(c: CargoDto) -> CargoResponse:
         price=c.price,
         distance_trans_eu=c.distance_trans_eu,
         distance_osm=c.distance_osm,
+        route_polyline=c.route_polyline,
         profitability=c.profitability.model_dump() if c.profitability else None,
         is_hidden=c.is_hidden,
         created_at=c.created_at,
