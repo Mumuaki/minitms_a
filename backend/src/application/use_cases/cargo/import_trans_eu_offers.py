@@ -22,6 +22,22 @@ logger = logging.getLogger(__name__)
 GREEN_RATE = 0.85  # максимальная ставка "зелёной" рентабельности (€/км)
 
 
+def _parse_date(s):
+    """22.09, 08:00 - 14:00 -> date(2026, 9, 22)."""
+    import re
+    from datetime import date as _date
+    if not s:
+        return None
+    nums = re.findall('[0-9]+', s)
+    if len(nums) >= 2:
+        day, month = int(nums[0]), int(nums[1])
+        try:
+            return _date(_date.today().year, month, day)
+        except ValueError:
+            return None
+    return None
+
+
 class ImportTransEuOffersUseCase:
 
     def __init__(self, cargo_repository: CargoRepository):
@@ -180,8 +196,8 @@ class ImportTransEuOffersUseCase:
             source="trans.eu",
             loading_place=loading_loc,
             unloading_place=unloading_loc,
-            loading_date=None,
-            unloading_date=None,
+            loading_date=_parse_date(item.get("loading_date_raw")),
+            unloading_date=_parse_date(item.get("unloading_date_raw")),
             weight=item.get("weight"),
             body_type=(item.get("body_type") or "")[:100] or None,
             price=price,

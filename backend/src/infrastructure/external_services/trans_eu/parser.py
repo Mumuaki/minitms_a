@@ -25,11 +25,21 @@ def get_extraction_script() -> str:
             const loadingPlace = loadingEl ? loadingEl.innerText.trim() : null;
             const unloadingPlace = unloadingEl ? unloadingEl.innerText.trim() : null;
 
-            // 2. Dates
+            // 2. Dates (ячейка содержит место + дату — берём строку с датой)
             const loadingDateEl = row.querySelector('[data-ctx="loading-place-cell-date"]');
             const unloadingDateEl = row.querySelector('[data-ctx="unloading-place-cell-date"]');
-            const loadingDate = loadingDateEl ? loadingDateEl.innerText.trim() : null;
-            const unloadingDate = unloadingDateEl ? unloadingDateEl.innerText.trim() : null;
+            let loadingDate = null;
+            let unloadingDate = null;
+            if (loadingDateEl) {
+                const lines = loadingDateEl.innerText.split('
+').map(x => x.trim());
+                loadingDate = lines.find(x => /\d{2}\.\d{2}/.test(x)) || loadingDateEl.innerText.trim();
+            }
+            if (unloadingDateEl) {
+                const lines = unloadingDateEl.innerText.split('
+').map(x => x.trim());
+                unloadingDate = lines.find(x => /\d{2}\.\d{2}/.test(x)) || unloadingDateEl.innerText.trim();
+            }
 
             // 3. Distance (км)
             const distEl = row.querySelector('[data-ctx="loading-place-cell-distance"]');
