@@ -177,12 +177,14 @@ class ImportTransEuOffersUseCase:
                 cargo_run_km, polyline = route_b_c
 
         price = item.get("price")
+        # Цены <= 5 EUR — артефакты парсинга «К обсуждению»: считаем, что цена не заявлена
+        effective_price = price if (price and price > 5) else None
         profitability = None
         total_km = empty_run_km + cargo_run_km
         if total_km > 0:
-            if price and price > 5:  # цены < 5 EUR — артефакт парсинга «договорной»
+            if effective_price:
                 profitability = ProfitabilityService.calculate_profitability(
-                    price_eur=price, empty_run_km=empty_run_km, cargo_km=cargo_run_km
+                    price_eur=effective_price, empty_run_km=empty_run_km, cargo_km=cargo_run_km
                 )
             else:
                 # нет цены — берём ставку по "зелёной" рентабельности 0.85 €/км
@@ -201,7 +203,7 @@ class ImportTransEuOffersUseCase:
             weight=item.get("weight"),
             body_type=(item.get("body_type") or "")[:100] or None,
             description=(item.get("description") or "")[:500] or None,
-            price=price,
+            price=effective_price,
             distance_trans_eu=item.get("distance_trans_eu"),
             distance_osm=int(cargo_run_km) if cargo_run_km else None,
             profitability=profitability,
