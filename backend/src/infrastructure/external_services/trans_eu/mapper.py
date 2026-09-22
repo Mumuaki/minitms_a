@@ -13,10 +13,52 @@ FORBIDDEN_EQUIPMENT_KEYWORDS = [
     "гидроборт", "подъемник", "подъёмник", "рокла", "рохля", "лифтборт",
 ]
 
+# «Рефрижератор» на всех языках: заявки с упоминанием в ЛЮБОМ месте карточки исключаются
+REEFER_KEYWORDS = [
+    # Русский / украинский
+    "рефрижератор",
+    # Английский
+    "reefer", "refrigerat", "fridge", "chiller", "frigorific",
+    "temp controlled", "temperature control", "temp-controlled", "temperature-controlled",
+    # Польский
+    "chłodnia", "chłodnicz", "chlodnia", "chlodnicz", "lodówka", "lodowka",
+    "mroźnia", "mroźn", "mroznia", "mrozn",
+    # Немецкий
+    "kühl", "kuehl", "kühlfahrzeug", "kuehlfahrzeug", "kühlauflieger", "kühlkoffer",
+    "kühlzug", "kühlanhänger", "kühlaggregat", "thermo",
+    # Итальянский / испанский / португальский / французский / румынский
+    "frigo", "frigorifero", "frigorífico", "frigorifico", "frigorífica",
+    "frigorifique", "frigider", "refrigerado", "refrigerato", "refrigere", "refrigerateur",
+    # Чешский / словацкий
+    "chladíren", "chladiren", "chladírensk", "chladirensk", "chladíc", "chladic",
+    "chladíř", "mrazíren", "mraziren", "mrazíc", "mrazic",
+    # Венгерский
+    "hűtő", "hűtött", "hűtős", "hutokocsi", "hutogep", "hűtőkocsi", "fagyaszt",
+    # Нидерландский
+    "koel", "gekoeld", "diepvries",
+    # Турецкий
+    "frigorifik", "soğutucu", "sogutucu", "soğutmalı", "sogutmali",
+    # Хорватский / сербский / боснийский
+    "hladnjača", "hladnjaca", "rashladni", "frižider", "frizider",
+    # Болгарский
+    "хладилен",
+    # Греческий
+    "ψυγείο", "ψυκτικό",
+    # Литовский / латышский
+    "šaldytuv", "saldytuv", "refrižerator", "refrizerator", "saldetava",
+    # Шведский / датский / норвежский
+    "kylbil", "kyltransport", "kylaggregat", "kylvagn", "kyld", "frysbil",
+    "køle", "kølevogn", "køletransport", "kjøle", "kjølevogn", "kjølebil",
+    # Финский / эстонский
+    "kylmä", "külmik", "kulmik", "külmutus", "kulmutus",
+]
+
+FORBIDDEN_KEYWORDS = FORBIDDEN_EQUIPMENT_KEYWORDS + REEFER_KEYWORDS
+
 
 def _contains_forbidden_equipment(raw_data: Dict[str, Any]) -> bool:
     text = json.dumps(raw_data, ensure_ascii=False).lower()
-    for kw in FORBIDDEN_EQUIPMENT_KEYWORDS:
+    for kw in FORBIDDEN_KEYWORDS:
         if kw.lower() in text:
             return True
     return False
