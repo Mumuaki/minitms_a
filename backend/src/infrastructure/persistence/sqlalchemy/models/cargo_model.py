@@ -63,6 +63,7 @@ class Cargo(Base):
     # Характеристики груза
     weight: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
     body_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     # Финансовые показатели
     price: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)

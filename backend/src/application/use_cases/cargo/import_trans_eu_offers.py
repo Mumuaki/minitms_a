@@ -200,6 +200,7 @@ class ImportTransEuOffersUseCase:
             unloading_date=_parse_date(item.get("unloading_date_raw")),
             weight=item.get("weight"),
             body_type=(item.get("body_type") or "")[:100] or None,
+            description=(item.get("description") or "")[:500] or None,
             price=price,
             distance_trans_eu=item.get("distance_trans_eu"),
             distance_osm=int(cargo_run_km) if cargo_run_km else None,

@@ -58,6 +58,7 @@ def map_to_cargo(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         "unloading_date_raw": raw_data.get("unloading_date_raw"),
         "body_type": body_type,
         "weight": weight,
+        "description": raw_data.get("description_raw"),
         "price": price,
         "currency": currency,
         "distance_trans_eu": distance_km,

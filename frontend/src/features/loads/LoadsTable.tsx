@@ -14,7 +14,7 @@ interface Cargo {
   price: number;
   distance_trans_eu: number;
   distance_osm?: number;
-  profitability?: { rate_per_km: number | null; color_code: string };
+  profitability?: { rate_per_km: number | null; empty_run_km?: number | null; total_distance?: number | null; color_code: string };
 }
 
 interface LoadsTableProps {
@@ -84,6 +84,7 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
             <th className="px-3 py-2 text-left font-medium">Описание</th>
             <th className="px-3 py-2 text-left font-medium">Даты</th>
             {th('distance_trans_eu', 'Дист. (км)')}
+            <th className="px-3 py-2 text-left font-medium">Подача, км</th>
             {th('price', 'Цена (€)')}
             {th('rate_per_km', '€/км')}
             <th className="px-3 py-2 text-left font-medium">Действия</th>
@@ -101,7 +102,8 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
                 <td className="px-3 py-2">{flagEmoji(load.unloading_place && load.unloading_place.country_code)} {load.unloading_place ? load.unloading_place.address : '—'}</td>
                 <td className="px-3 py-2 text-muted">{desc(load.body_type)}</td>
                 <td className="px-3 py-2 whitespace-nowrap">{load.loading_date || '—'}{load.unloading_date ? ' → ' + load.unloading_date : ''}</td>
-                <td className="px-3 py-2 text-right">{load.distance_trans_eu || '—'}</td>
+                <td className="px-3 py-2 text-right">{load.profitability && load.profitability.total_distance != null ? load.profitability.total_distance.toFixed(0) : (load.distance_trans_eu || '—')}</td>
+                <td className="px-3 py-2 text-right">{load.profitability && load.profitability.empty_run_km != null ? load.profitability.empty_run_km.toFixed(0) : '—'}</td>
                 <td className="px-3 py-2 text-right font-bold">{load.price || '—'}</td>
                 <td className="px-3 py-2 text-right font-semibold">{load.profitability && load.profitability.rate_per_km != null ? load.profitability.rate_per_km.toFixed(2) : '—'}</td>
                 <td className="px-3 py-2">

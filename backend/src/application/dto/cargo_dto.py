@@ -39,6 +39,7 @@ class CargoDto(BaseModel):
     unloading_date: Optional[date]
     weight: Optional[float]
     body_type: Optional[str]
+    description: Optional[str] = None
     price: Optional[float]
     distance_trans_eu: Optional[int]
     distance_osm: Optional[int]

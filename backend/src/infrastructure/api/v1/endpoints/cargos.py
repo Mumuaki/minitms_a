@@ -38,6 +38,7 @@ def _dto_to_response(c: CargoDto) -> CargoResponse:
         unloading_date=c.unloading_date,
         weight=c.weight,
         body_type=c.body_type,
+        description=c.description,
         price=c.price,
         distance_trans_eu=c.distance_trans_eu,
         distance_osm=c.distance_osm,
