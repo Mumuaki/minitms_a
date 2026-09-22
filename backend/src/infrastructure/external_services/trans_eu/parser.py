@@ -6,10 +6,15 @@ Contains the JavaScript logic to be executed in the browser for efficient data e
 def get_extraction_script() -> str:
     """
     Returns the JavaScript function to extract offers from the DOM.
-    Uses the actual data-ctx attributes of the Trans.eu offers list.
+    Pass 1: reads the offers list rows (places, dates, distance, cargo info, price, company).
+    Pass 2: opens the details drawer for every offer and reads the additional description
+            from the "Подробности" (offer-details) tab.
     """
     return """
-    () => {
+    async () => {
+        const NL = String.fromCharCode(10);
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
         const offers = [];
         const rows = document.querySelectorAll('div[data-ctx="row"]');
 
@@ -25,25 +30,25 @@ def get_extraction_script() -> str:
             const loadingPlace = loadingEl ? loadingEl.innerText.trim() : null;
             const unloadingPlace = unloadingEl ? unloadingEl.innerText.trim() : null;
 
-            // 2. Dates (ячейка содержит место + дату — берём строку с датой)
+            // 2. Dates
             const loadingDateEl = row.querySelector('[data-ctx="loading-place-cell-date"]');
             const unloadingDateEl = row.querySelector('[data-ctx="unloading-place-cell-date"]');
             let loadingDate = null;
             let unloadingDate = null;
             if (loadingDateEl) {
-                const lines = loadingDateEl.innerText.split(String.fromCharCode(10)).map(x => x.trim());
+                const lines = loadingDateEl.innerText.split(NL).map(x => x.trim());
                 loadingDate = lines.find(x => /\d{2}\.\d{2}/.test(x)) || loadingDateEl.innerText.trim();
             }
             if (unloadingDateEl) {
-                const lines = unloadingDateEl.innerText.split(String.fromCharCode(10)).map(x => x.trim());
+                const lines = unloadingDateEl.innerText.split(NL).map(x => x.trim());
                 unloadingDate = lines.find(x => /\d{2}\.\d{2}/.test(x)) || unloadingDateEl.innerText.trim();
             }
 
-            // 3. Distance (км)
+            // 3. Distance (km)
             const distEl = row.querySelector('[data-ctx="loading-place-cell-distance"]');
             const distance = distEl ? distEl.innerText.trim() : null;
 
-            // 4. Cargo info: вес + тип кузова (Грузоподъёмность + Тип ТС)
+            // 4. Cargo info: вес + тип кузова
             const infoEl = row.querySelector('[data-ctx="offer-info-cell-properties"]');
             const cargoInfoRaw = infoEl ? infoEl.innerText.trim() : '';
 
@@ -75,9 +80,43 @@ def get_extraction_script() -> str:
                 company_name: companyName,
                 company_rating_raw: companyRating,
                 published_at_raw: null,
+                description_raw: null,
                 external_id: externalId
             });
         });
+
+        // PASS 2: «Дополнительное описание» из вкладки «Подробности» (details drawer)
+        const rowEls = Array.from(document.querySelectorAll('div[data-ctx="row"]'));
+        for (let i = 0; i < rowEls.length; i++) {
+            const row = rowEls[i];
+            let extId = null;
+            row.querySelectorAll('[data-ctx]').forEach(el => {
+                const c = el.getAttribute('data-ctx');
+                if (c && /^\d+-\d+$/.test(c) && !extId) extId = c;
+            });
+            if (!extId) continue;
+            try {
+                row.click();
+                await sleep(1500);
+                const tab = document.querySelector('button[data-ctx-id="offer-details"]');
+                if (tab) { tab.click(); await sleep(500); }
+                const tc = document.querySelector('[data-ctx="tabContent"]');
+                if (tc) {
+                    const txt = tc.innerText || '';
+                    const start = txt.indexOf('Дополнительное описание');
+                    if (start >= 0) {
+                        let rest = txt.slice(start + 'Дополнительное описание'.length);
+                        const end = rest.indexOf('Основная информация');
+                        if (end > 0) rest = rest.slice(0, end);
+                        const desc = rest.split(NL).map(x => x.trim()).filter(Boolean).join(' ');
+                        if (desc) {
+                            const offer = offers.find(o => o.external_id === extId);
+                            if (offer) offer.description_raw = desc.slice(0, 500);
+                        }
+                    }
+                }
+            } catch (e) { /* skip this offer */ }
+        }
 
         return offers;
     }

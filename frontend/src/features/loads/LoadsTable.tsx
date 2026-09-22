@@ -11,6 +11,7 @@ interface Cargo {
   unloading_date?: string;
   weight: number;
   body_type: string;
+  description?: string;
   price: number;
   distance_trans_eu: number;
   distance_osm?: number;
@@ -32,7 +33,21 @@ const flagEmoji = (cc?: string) => {
   return [...cc.toUpperCase()].map((c) => String.fromCodePoint(127397 + c.charCodeAt(0))).join('');
 };
 
-const desc = (bt?: string) => (bt ? bt.slice(0, 80) : '');
+const fmtWeight = (kg?: number | null) => {
+  if (kg == null) return '';
+  const t = kg / 1000;
+  const s = t % 1 === 0 ? t.toFixed(0) : t.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  return s + ' т';
+};
+
+const desc = (c: Cargo) => {
+  const parts: string[] = [];
+  if (c.description) parts.push(c.description.slice(0, 60));
+  if (c.body_type) parts.push(c.body_type.slice(0, 60));
+  const w = fmtWeight(c.weight);
+  if (w) parts.push(w);
+  return parts.join(' · ');
+};
 
 type SortKey = 'rate_per_km' | 'price' | 'loading_place' | 'unloading_place' | 'distance_trans_eu';
 
@@ -100,7 +115,7 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
                 <td className="px-3 py-2"><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', backgroundColor: dot }} /></td>
                 <td className="px-3 py-2">{flagEmoji(load.loading_place && load.loading_place.country_code)} {load.loading_place ? load.loading_place.address : '—'}</td>
                 <td className="px-3 py-2">{flagEmoji(load.unloading_place && load.unloading_place.country_code)} {load.unloading_place ? load.unloading_place.address : '—'}</td>
-                <td className="px-3 py-2 text-muted">{desc(load.body_type)}</td>
+                <td className="px-3 py-2 text-muted">{desc(load)}</td>
                 <td className="px-3 py-2 whitespace-nowrap">{load.loading_date || '—'}{load.unloading_date ? ' → ' + load.unloading_date : ''}</td>
                 <td className="px-3 py-2 text-right">{load.profitability && load.profitability.total_distance != null ? load.profitability.total_distance.toFixed(0) : (load.distance_trans_eu || '—')}</td>
                 <td className="px-3 py-2 text-right">{load.profitability && load.profitability.empty_run_km != null ? load.profitability.empty_run_km.toFixed(0) : '—'}</td>

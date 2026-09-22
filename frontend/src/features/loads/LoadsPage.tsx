@@ -311,7 +311,8 @@ export const LoadsPage = () => {
             <p><b>Выгрузка:</b> {selectedCargo.unloading_place?.address || '—'} ({selectedCargo.unloading_place?.country_code || '—'})</p>
             <p><b>Дата загрузки:</b> {selectedCargo.loading_date || '—'}</p>
             <p><b>Дата выгрузки:</b> {selectedCargo.unloading_date || '—'}</p>
-            <p><b>Вес:</b> {selectedCargo.weight != null ? selectedCargo.weight + ' кг' : '—'}</p>
+            <p><b>Дополнительное описание:</b> {selectedCargo.description || '—'}</p>
+            <p><b>Вес:</b> {selectedCargo.weight != null ? (selectedCargo.weight / 1000).toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + ' т' : '—'}</p>
             <p><b>Тип кузова:</b> {selectedCargo.body_type || '—'}</p>
             <p><b>Дистанция:</b> подача {selectedCargo.profitability?.empty_run_km != null ? selectedCargo.profitability.empty_run_km.toFixed(0) : 0} км + перевозка {selectedCargo.distance_osm || '—'} км = полная {selectedCargo.profitability?.total_distance != null ? selectedCargo.profitability.total_distance.toFixed(0) : '—'} км</p>
             <p><b>Ставка €/км:</b> {selectedCargo.profitability?.rate_per_km != null ? selectedCargo.profitability.rate_per_km.toFixed(2) : '—'}</p>
