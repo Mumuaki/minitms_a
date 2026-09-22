@@ -137,8 +137,8 @@ class CargoRepositoryImpl(CargoRepository):
             is_hidden=cargo.is_hidden,
             profitability=ProfitabilityDto(
                 rate_per_km=float(cargo.rate_per_km) if cargo.rate_per_km is not None else None,
-                empty_run_km=None,
-                total_distance=None,
+                empty_run_km=float(cargo.empty_run_km) if cargo.empty_run_km is not None else None,
+                total_distance=float(cargo.total_distance) if cargo.total_distance is not None else None,
                 color_code=cargo.status_color,
             ),
             created_at=cargo.created_at.isoformat()
@@ -182,6 +182,8 @@ class CargoRepositoryImpl(CargoRepository):
             route_polyline=cargo_dto.route_polyline,
             rate_per_km=cargo_dto.profitability.rate_per_km if cargo_dto.profitability else None,
             total_cost=None,
+            empty_run_km=cargo_dto.profitability.empty_run_km if cargo_dto.profitability else None,
+            total_distance=cargo_dto.profitability.total_distance if cargo_dto.profitability else None,
             status_color=cargo_dto.profitability.color_code if cargo_dto.profitability else CargoStatusColor.GRAY,
             company_rating=cargo_dto.company_rating,
             published_at=cargo_dto.published_at,
@@ -202,6 +204,8 @@ class CargoRepositoryImpl(CargoRepository):
             "distance_osm": stmt.excluded.distance_osm,
             "route_polyline": stmt.excluded.route_polyline,
             "rate_per_km": stmt.excluded.rate_per_km,
+            "empty_run_km": stmt.excluded.empty_run_km,
+            "total_distance": stmt.excluded.total_distance,
             "status_color": stmt.excluded.status_color,
             "company_rating": stmt.excluded.company_rating,
             "published_at": stmt.excluded.published_at,

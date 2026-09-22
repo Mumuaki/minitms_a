@@ -115,7 +115,7 @@ def _parse_cargo_info(info_str: Optional[str]):
     body = info_str
 
     # Извлекаем вес "0,1 т" / "24t" и убираем его из описания (типа кузова)
-    w_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*т', info_str, re.IGNORECASE)
+    w_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*т', info_str, re.IGNORECASE)
     if w_match:
         try:
             weight = float(w_match.group(1).replace(",", ".")) * 1000  # кг

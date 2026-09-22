@@ -180,7 +180,7 @@ class ImportTransEuOffersUseCase:
         profitability = None
         total_km = empty_run_km + cargo_run_km
         if total_km > 0:
-            if price and price > 0:
+            if price and price > 5:  # цены < 5 EUR — артефакт парсинга «договорной»
                 profitability = ProfitabilityService.calculate_profitability(
                     price_eur=price, empty_run_km=empty_run_km, cargo_km=cargo_run_km
                 )

@@ -75,6 +75,8 @@ class Cargo(Base):
     # Рентабельность
     rate_per_km: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
     total_cost: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    empty_run_km: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    total_distance: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
 
     # Статус рентабельности
     status_color: Mapped[CargoStatusColor] = mapped_column(
