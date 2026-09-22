@@ -40,6 +40,13 @@ const fmtWeight = (kg?: number | null) => {
   return s + ' т';
 };
 
+const calcPrice = (c: Cargo): number | null => {
+  if (c.price != null && c.price > 0) return c.price;
+  const td = c.profitability?.total_distance;
+  if (td != null && td > 0) return Math.round(td * 0.85);
+  return null;
+};
+
 const desc = (c: Cargo) => {
   const parts: string[] = [];
   if (c.description) parts.push(c.description.slice(0, 60));
@@ -119,7 +126,17 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
                 <td className="px-3 py-2 whitespace-nowrap">{load.loading_date || '—'}{load.unloading_date ? ' → ' + load.unloading_date : ''}</td>
                 <td className="px-3 py-2 text-right">{load.profitability && load.profitability.total_distance != null ? load.profitability.total_distance.toFixed(0) : (load.distance_trans_eu || '—')}</td>
                 <td className="px-3 py-2 text-right">{load.profitability && load.profitability.empty_run_km != null ? load.profitability.empty_run_km.toFixed(0) : '—'}</td>
-                <td className="px-3 py-2 text-right font-bold">{load.price || '—'}</td>
+                <td className="px-3 py-2 text-right font-bold">
+                  {(() => {
+                    const p = calcPrice(load);
+                    const isCalc = !(load.price != null && load.price > 0);
+                    return p != null ? (
+                      <span title={isCalc ? 'Расчётная цена: 0,85 €/км × полная дистанция (цена заказчиком не заявлена)' : undefined}>
+                        {p} €{isCalc && <span className="text-muted font-normal"> (расч.)</span>}
+                      </span>
+                    ) : '—';
+                  })()}
+                </td>
                 <td className="px-3 py-2 text-right font-semibold">{load.profitability && load.profitability.rate_per_km != null ? load.profitability.rate_per_km.toFixed(2) : '—'}</td>
                 <td className="px-3 py-2">
                   <div className="flex gap-1">

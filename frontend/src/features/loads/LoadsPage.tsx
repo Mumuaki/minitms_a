@@ -42,6 +42,7 @@ export const LoadsPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(true);
   const [filtersSaved, setFiltersSaved] = useState(false);
   const [selectedCargo, setSelectedCargo] = useState<any | null>(null);
+  const [importNote, setImportNote] = useState<string | null>(null);
   const [countryFilter, setCountryFilter] = useState<string>('all');
 
   const loadData = async () => {
@@ -123,16 +124,45 @@ export const LoadsPage = () => {
       // Открываем удалённый браузер (noVNC) в новой вкладке
       window.open('http://89.167.70.67:6080', '_blank');
 
-      await apiClient.post('/scraping/import_trans_eu_manual', null, {
+      // Импорт работает в фоне на сервере — сразу получаем job_id и опрашиваем статус
+      const resp = await apiClient.post('/scraping/import_trans_eu_manual', null, {
         params: { timeout_seconds: 600 },
-        timeout: 650000, // до 10 минут — ручной поиск оператором
+        timeout: 30000,
       });
 
-      // После импорта — обновляем таблицу
-      await loadData();
+      const jobId = resp.data && resp.data.job_id;
+      if (!jobId) {
+        // Старый синхронный формат ответа — просто обновляем таблицу
+        await loadData();
+        setIsSearching(false);
+        return;
+      }
+
+      let done = false;
+      for (let i = 0; i < 150 && !done; i++) {
+        await new Promise((r) => setTimeout(r, 10000));
+        setImportNote('Импорт выполняется… (выполните поиск в окне Trans.eu, если ещё не сделали это)');
+        try {
+          const st = await apiClient.get('/scraping/import_trans_eu_manual/' + jobId + '/status', { timeout: 15000 });
+          const s = st.data;
+          if (s.status === 'done') {
+            done = true;
+            setImportNote(null);
+            await loadData();
+          } else if (s.status === 'error') {
+            done = true;
+            setSearchError('Ошибка импорта: ' + (s.message || 'неизвестная ошибка'));
+          }
+        } catch {
+          // сеть/таймаут статуса — пробуем ещё раз
+        }
+      }
+      if (!done) {
+        setImportNote('Импорт всё ещё выполняется. Нажмите «Обновить» через пару минут.');
+      }
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
-      setSearchError(detail ? String(detail) : `Ошибка импорта: ${err.message}`);
+      setSearchError(detail ? String(detail) : 'Ошибка импорта: ' + (err.message || 'неизвестная ошибка'));
     } finally {
       setIsSearching(false);
     }
@@ -245,7 +275,11 @@ export const LoadsPage = () => {
               </div>
             </div>
 
-            {searchError && (
+            {importNote && (
+          <div className="mt-2 text-sm text-amber-600 dark:text-amber-400">{importNote}</div>
+        )}
+
+        {searchError && (
               <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300">
                 {searchError}
               </div>
@@ -316,7 +350,14 @@ export const LoadsPage = () => {
             <p><b>Тип кузова:</b> {selectedCargo.body_type || '—'}</p>
             <p><b>Дистанция:</b> подача {selectedCargo.profitability?.empty_run_km != null ? selectedCargo.profitability.empty_run_km.toFixed(0) : 0} км + перевозка {selectedCargo.distance_osm || '—'} км = полная {selectedCargo.profitability?.total_distance != null ? selectedCargo.profitability.total_distance.toFixed(0) : '—'} км</p>
             <p><b>Ставка €/км:</b> {selectedCargo.profitability?.rate_per_km != null ? selectedCargo.profitability.rate_per_km.toFixed(2) : '—'}</p>
-            <p><b>Цена:</b> {selectedCargo.price || '—'} €</p>
+            {(() => {
+              const p = selectedCargo.price;
+              const td = selectedCargo.profitability?.total_distance;
+              const calc = p ? null : (td ? Math.round(td * 0.85) : null);
+              return (
+                <p><b>Цена:</b> {p ? p + ' €' : (calc ? calc + ' € <span className="text-muted">(расчётная: 0,85 €/км × полная дистанция)</span>' : '—')}</p>
+              );
+            })()}
             <CargoRouteMap
               loading={{ lat: selectedCargo.loading_place?.lat, lon: selectedCargo.loading_place?.lon, address: selectedCargo.loading_place?.address || '' }}
               unloading={{ lat: selectedCargo.unloading_place?.lat, lon: selectedCargo.unloading_place?.lon, address: selectedCargo.unloading_place?.address || '' }}

@@ -8,7 +8,9 @@ Trans.eu Scraping Status Endpoints.
 """
 
 import os
-from typing import Optional
+import asyncio
+import uuid
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, status
@@ -19,7 +21,7 @@ from backend.src.infrastructure.api.v1.dependencies import get_current_user, req
 from typing import List
 from fastapi import Query, HTTPException
 from sqlalchemy.orm import Session
-from backend.src.infrastructure.persistence.sqlalchemy.database import get_db
+from backend.src.infrastructure.persistence.sqlalchemy.database import get_db, SessionLocal
 from backend.src.domain.repositories.cargo_repository import CargoRepository
 from backend.src.infrastructure.persistence.sqlalchemy.repositories.cargo_repository_impl import CargoRepositoryImpl
 from backend.src.application.use_cases.cargo.import_trans_eu_offers import ImportTransEuOffersUseCase
@@ -44,6 +46,31 @@ _scraper_state = {
     "errors": 0,
     "is_running": False,
 }
+
+# Асинхронные задания ручного импорта: job_id -> status
+_MANUAL_JOBS: Dict[str, Dict[str, Any]] = {}
+
+
+async def _run_manual_import_job(job_id: str, timeout_seconds: int) -> None:
+    """Фоновое выполнение полуавтоматического импорта Trans.eu."""
+    job = _MANUAL_JOBS.get(job_id)
+    if not job:
+        return
+    job["status"] = "waiting_search"
+    db = SessionLocal()
+    try:
+        repo = CargoRepositoryImpl(db)
+        use_case = ImportTransEuOffersUseCase(repo)
+        result = await use_case.execute_manual(timeout_seconds=timeout_seconds, db=db)
+        job["status"] = "done"
+        job["saved"] = len(result)
+        job["total"] = len(result)
+        job["message"] = "Сохранено грузов: %d" % len(result)
+    except Exception as e:
+        job["status"] = "error"
+        job["message"] = str(e)[:500]
+    finally:
+        db.close()
 
 
 class ScrapingStatus(BaseModel):
@@ -146,19 +173,42 @@ async def import_trans_eu(
 
 @router.post(
     "/import_trans_eu_manual",
-    response_model=List[dict],
-    summary="Полуавтоматический импорт из Trans.eu",
-    description="Оператор вручную выполняет поиск в браузере (Cloudflare + фильтры), скрапер парсит результат."
+    summary="Полуавтоматический импорт из Trans.eu (асинхронно)",
+    description="Запускает импорт в фоне. Оператор вручную выполняет поиск в браузере, "
+                "скрапер сам парсит результат. Статус: GET /scraping/import_trans_eu_manual/{job_id}/status"
 )
 async def import_trans_eu_manual(
     current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
     timeout_seconds: int = Query(600, description="Сколько секунд ждать ручной поиск"),
-    use_case: ImportTransEuOffersUseCase = Depends(get_import_trans_eu_offers_use_case),
-    db: Session = Depends(get_db),
 ):
-    try:
-        result = await use_case.execute_manual(timeout_seconds=timeout_seconds, db=db)
-        return [c.dict() for c in result]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Один ручной импорт за раз — браузер общий
+    for j in _MANUAL_JOBS.values():
+        if j.get("status") in ("queued", "waiting_search", "parsing"):
+            raise HTTPException(status_code=409, detail="Импорт уже выполняется. Дождитесь завершения.")
+
+    job_id = str(uuid.uuid4())[:8]
+    _MANUAL_JOBS[job_id] = {
+        "job_id": job_id,
+        "status": "queued",
+        "saved": 0,
+        "total": 0,
+        "message": "Импорт запущен",
+        "started_at": datetime.utcnow().isoformat(),
+    }
+    asyncio.create_task(_run_manual_import_job(job_id, timeout_seconds))
+    return _MANUAL_JOBS[job_id]
+
+
+@router.get(
+    "/import_trans_eu_manual/{job_id}/status",
+    summary="Статус асинхронного импорта Trans.eu",
+)
+async def import_trans_eu_manual_status(
+    job_id: str,
+    current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
+):
+    job = _MANUAL_JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Задание не найдено")
+    return job
 
