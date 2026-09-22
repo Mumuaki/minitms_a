@@ -889,7 +889,7 @@ class TransEuClient:
             
             # Execute JS parser
             js_script = parser.get_extraction_script()
-            raw_offers = await self.page.evaluate(js_script, timeout=900000)
+            raw_offers = await self.page.evaluate(js_script)
             logger.info(f"Extracted {len(raw_offers)} raw items.")
             
             # Map to Domain
@@ -950,7 +950,7 @@ class TransEuClient:
         logger.info("Extracting search results...")
         from backend.src.infrastructure.external_services.trans_eu import parser, mapper
         js_script = parser.get_extraction_script()
-        raw_offers = await self.page.evaluate(js_script, timeout=900000)
+        raw_offers = await self.page.evaluate(js_script)
         logger.info(f"Extracted {len(raw_offers)} raw items.")
         results = []
         for raw in raw_offers:
