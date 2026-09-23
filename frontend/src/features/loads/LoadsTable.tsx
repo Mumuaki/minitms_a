@@ -223,7 +223,7 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
                       onClick={(e) => {
                         e.stopPropagation();
                         // Карточка открывается в браузере скрапера (noVNC) — там активна сессия Trans.eu
-                        window.open('http://89.167.70.67:6080', '_blank');
+                        window.open('http://89.167.70.67:6080', 'minitms_novnc');
                         apiClient.post('/scraping/open_offer', { url: load.offer_url || null }, { timeout: 120000 }).catch(() => {});
                       }}
                     ><Contact size={15} /></button>

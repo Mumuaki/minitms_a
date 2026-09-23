@@ -122,7 +122,7 @@ export const LoadsPage = () => {
 
     try {
       // Открываем удалённый браузер (noVNC) в новой вкладке
-      window.open('http://89.167.70.67:6080', '_blank');
+      window.open('http://89.167.70.67:6080', 'minitms_novnc');
 
       // Импорт работает в фоне на сервере — сразу получаем job_id и опрашиваем статус
       const resp = await apiClient.post('/scraping/import_trans_eu_manual', null, {
@@ -349,7 +349,7 @@ export const LoadsPage = () => {
                 title="Открыть карточку на портале Trans.eu (в окне noVNC)"
                 onClick={(e) => {
                   e.preventDefault();
-                  window.open('http://89.167.70.67:6080', '_blank');
+                  window.open('http://89.167.70.67:6080', 'minitms_novnc');
                   apiClient.post('/scraping/open_offer', { url: selectedCargo.offer_url || null }, { timeout: 120000 }).catch(() => {});
                 }}
               >{selectedCargo.external_id || '—'}</a>
