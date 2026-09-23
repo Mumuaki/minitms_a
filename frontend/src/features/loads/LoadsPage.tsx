@@ -341,11 +341,18 @@ export const LoadsPage = () => {
         {selectedCargo && (
           <div className="space-y-2 text-sm">
             <p><b>Заявка:</b>{' '}
-              {selectedCargo.offer_url ? (
-                <a href={selectedCargo.offer_url} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 underline" title="Открыть карточку на портале Trans.eu">{selectedCargo.external_id || '—'}</a>
-              ) : (
-                <a href="https://platform.trans.eu/exchange/offers" target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 underline" title="Открыть портал Trans.eu">{selectedCargo.external_id || '—'}</a>
-              )}
+              <a
+                href="http://89.167.70.67:6080"
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 dark:text-blue-400 underline"
+                title="Открыть карточку на портале Trans.eu (в окне noVNC)"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.open('http://89.167.70.67:6080', '_blank');
+                  apiClient.post('/scraping/open_offer', { url: selectedCargo.offer_url || null }, { timeout: 120000 }).catch(() => {});
+                }}
+              >{selectedCargo.external_id || '—'}</a>
             </p>
             <p><b>Загрузка:</b> {selectedCargo.loading_place?.address || '—'} ({selectedCargo.loading_place?.country_code || '—'})</p>
             <p><b>Выгрузка:</b> {selectedCargo.unloading_place?.address || '—'} ({selectedCargo.unloading_place?.country_code || '—'})</p>

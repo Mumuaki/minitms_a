@@ -217,7 +217,16 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
                       className="p-1 hover:bg-black/10 rounded"
                       onClick={(e) => { e.stopPropagation(); pinRow(load.id); onSelect && onSelect(load); }}
                     ><MapPin size={15} /></button>
-                    <button title="Контакт (карточка на Trans.eu)" className="p-1 hover:bg-black/10 rounded" onClick={(e) => { e.stopPropagation(); window.open(load.offer_url || 'https://platform.trans.eu/exchange/offers', '_blank'); }}><Contact size={15} /></button>
+                    <button
+                      title="Контакт (карточка на Trans.eu)"
+                      className="p-1 hover:bg-black/10 rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Карточка открывается в браузере скрапера (noVNC) — там активна сессия Trans.eu
+                        window.open('http://89.167.70.67:6080', '_blank');
+                        apiClient.post('/scraping/open_offer', { url: load.offer_url || null }, { timeout: 120000 }).catch(() => {});
+                      }}
+                    ><Contact size={15} /></button>
                     <button title="Скрыть" className="p-1 hover:bg-black/10 rounded" onClick={(e) => act(e, () => apiClient.patch('/cargos/' + load.id + '/hide'))}><EyeOff size={15} /></button>
                     <button title="Принять (создать заказ)" className="p-1 hover:bg-black/10 rounded" onClick={(e) => act(e, () => apiClient.post('/cargos/' + load.id + '/accept'))}><CheckCircle size={15} /></button>
                   </div>

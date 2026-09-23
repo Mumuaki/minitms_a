@@ -73,6 +73,10 @@ async def _run_manual_import_job(job_id: str, timeout_seconds: int) -> None:
         db.close()
 
 
+class OpenOfferRequest(BaseModel):
+    url: Optional[str] = None
+
+
 class ScrapingStatus(BaseModel):
     status: str
     is_running: bool
@@ -212,3 +216,41 @@ async def import_trans_eu_manual_status(
         raise HTTPException(status_code=404, detail="Задание не найдено")
     return job
 
+@router.post(
+    "/open_offer",
+    summary="Открыть карточку заявки в браузере скрапера (noVNC)",
+    description="Навигация браузера скрапера на карточку заявки Trans.eu. "
+                "Пользователь видит карточку в окне noVNC (порт 6080), где сессия Trans.eu активна."
+)
+async def open_offer(
+    req: OpenOfferRequest,
+    current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
+):
+    # Браузер общий — во время импорта он занят
+    for j in _MANUAL_JOBS.values():
+        if j.get("status") in ("queued", "waiting_search", "parsing"):
+            raise HTTPException(status_code=409, detail="Идёт импорт — браузер занят. Попробуйте после завершения импорта.")
+
+    from backend.src.infrastructure.external_services.trans_eu.client import TransEuClient
+    try:
+        client = await TransEuClient.get_instance()
+        if client.page is None:
+            # Убить зависшие процессы chrome и снять блокировки профиля
+            import subprocess
+            subprocess.run(["pkill", "-9", "chrome"], capture_output=True)
+            subprocess.run(["pkill", "-9", "chromium"], capture_output=True)
+            import glob as _glob
+            for f in _glob.glob("/workspace/browser_profile/Singleton*"):
+                try:
+                    os.remove(f)
+                except Exception:
+                    pass
+            await client.start()
+            if not await client.login():
+                raise Exception("Не удалось авторизоваться в Trans.eu")
+        target = (req.url or "").strip() or "https://platform.trans.eu/exchange/offers"
+        await client.page.goto(target, timeout=60000, wait_until="domcontentloaded")
+        await client.page.wait_for_timeout(4000)
+        return {"status": "ok", "url": client.page.url[:400]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)[:300])
