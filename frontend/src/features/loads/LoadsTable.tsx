@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { MapPin, EyeOff, CheckCircle, Contact } from 'lucide-react';
 import { apiClient } from '../../infrastructure/api/client';
 
@@ -86,6 +86,9 @@ const NumInput = ({ value, onCommit, className }: { value: string; onCommit: (v:
 export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTableProps) => {
   const [sortKey, setSortKey] = useState<SortKey>('rate_per_km');
   const [asc, setAsc] = useState(false);
+  // Закреплённая (выбранная в работу) строка: не пересортировывается при изменении данных
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const pinnedIndex = useRef<number | null>(null);
 
   if (isLoading) return <div className="text-center p-4">Загрузка…</div>;
   if (loads.length === 0) return <div className="text-center p-4 text-muted">Нет грузов.</div>;
@@ -99,18 +102,43 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
     return c[k] ?? '';
   };
 
-  const sorted = [...loads].sort((a, b) => {
+  const compare = (a: Cargo, b: Cargo) => {
     const va = val(a, sortKey);
     const vb = val(b, sortKey);
     if (va < vb) return asc ? -1 : 1;
     if (va > vb) return asc ? 1 : -1;
     return 0;
-  });
+  };
+
+  const sorted = [...loads].sort(compare);
+
+  // Закреплённая строка остаётся на своём месте до выбора другой строки
+  if (pinnedId) {
+    const idx = sorted.findIndex((c) => c.id === pinnedId);
+    if (idx >= 0) {
+      if (pinnedIndex.current == null) pinnedIndex.current = idx;
+      if (idx !== pinnedIndex.current) {
+        const [item] = sorted.splice(idx, 1);
+        sorted.splice(Math.min(pinnedIndex.current, sorted.length), 0, item);
+      }
+    }
+  }
+
+  const pinRow = (id: string) => {
+    const idx = sorted.findIndex((c) => c.id === id);
+    pinnedIndex.current = idx >= 0 ? idx : null;
+    setPinnedId(id);
+  };
 
   const th = (key: SortKey, label: string) => (
     <th
       className="px-3 py-2 text-left font-medium cursor-pointer select-none whitespace-nowrap"
-      onClick={() => { if (sortKey === key) setAsc(!asc); else { setSortKey(key); setAsc(false); } }}
+      onClick={() => {
+        setPinnedId(null);
+        pinnedIndex.current = null;
+        if (sortKey === key) setAsc(!asc);
+        else { setSortKey(key); setAsc(false); }
+      }}
     >
       {label} {sortKey === key ? (asc ? '↑' : '↓') : ''}
     </th>
@@ -123,6 +151,8 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
   };
 
   const savePricing = async (load: Cargo, body: { price?: number; rate_per_km?: number }) => {
+    // закрепить строку, чтобы она не «убегала» после пересчёта
+    pinRow(load.id);
     try { await apiClient.patch('/cargos/' + load.id + '/pricing', body); } catch { /* ignore */ }
     onChanged && onChanged();
   };
@@ -149,11 +179,17 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
             const cc = load.profitability ? load.profitability.color_code : undefined;
             const dot = cc ? DOT_COLOR[cc] : '#9E9E9E';
             const bg = cc ? ROW_BG[cc] : undefined;
+            const isSelected = load.id === pinnedId;
             const shownPrice = calcPrice(load);
             const isCalc = !(load.price != null && load.price > 0) && shownPrice != null;
             const totalKm = load.profitability && load.profitability.total_distance != null ? load.profitability.total_distance : load.distance_trans_eu;
             return (
-              <tr key={load.id} onClick={() => onSelect && onSelect(load)} className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" style={bg ? { backgroundColor: bg } : undefined}>
+              <tr
+                key={load.id}
+                onClick={() => pinRow(load.id)}
+                className={'hover:bg-black/5 dark:hover:bg-white/5' + (isSelected ? ' ring-2 ring-inset ring-blue-500' : '')}
+                style={bg ? { backgroundColor: bg } : undefined}
+              >
                 <td className="px-3 py-2"><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', backgroundColor: dot }} /></td>
                 <td className="px-3 py-2">{flagEmoji(load.loading_place && load.loading_place.country_code)} {load.loading_place ? load.loading_place.address : '—'}</td>
                 <td className="px-3 py-2">{flagEmoji(load.unloading_place && load.unloading_place.country_code)} {load.unloading_place ? load.unloading_place.address : '—'}</td>
@@ -176,7 +212,11 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex gap-1">
-                    <button title="Открыть на карте" className="p-1 hover:bg-black/10 rounded" onClick={(e) => { e.stopPropagation(); onSelect && onSelect(load); }}><MapPin size={15} /></button>
+                    <button
+                      title="Показать на карте"
+                      className="p-1 hover:bg-black/10 rounded"
+                      onClick={(e) => { e.stopPropagation(); pinRow(load.id); onSelect && onSelect(load); }}
+                    ><MapPin size={15} /></button>
                     <button title="Контакт (карточка на Trans.eu)" className="p-1 hover:bg-black/10 rounded" onClick={(e) => { e.stopPropagation(); window.open(load.offer_url || 'https://platform.trans.eu/exchange/offers', '_blank'); }}><Contact size={15} /></button>
                     <button title="Скрыть" className="p-1 hover:bg-black/10 rounded" onClick={(e) => act(e, () => apiClient.patch('/cargos/' + load.id + '/hide'))}><EyeOff size={15} /></button>
                     <button title="Принять (создать заказ)" className="p-1 hover:bg-black/10 rounded" onClick={(e) => act(e, () => apiClient.post('/cargos/' + load.id + '/accept'))}><CheckCircle size={15} /></button>
