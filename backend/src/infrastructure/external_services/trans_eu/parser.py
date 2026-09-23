@@ -81,11 +81,12 @@ def get_extraction_script() -> str:
                 company_rating_raw: companyRating,
                 published_at_raw: null,
                 description_raw: null,
+                offer_url: null,
                 external_id: externalId
             });
         });
 
-        // PASS 2: «Дополнительное описание» из вкладки «Подробности» (details drawer)
+        // PASS 2: «Дополнительное описание» + ссылка на карточку из drawer
         const rowEls = Array.from(document.querySelectorAll('div[data-ctx="row"]'));
         for (let i = 0; i < rowEls.length; i++) {
             const row = rowEls[i];
@@ -98,8 +99,10 @@ def get_extraction_script() -> str:
             try {
                 row.click();
                 await sleep(1500);
+                const offerUrl = location.href;
                 const tab = document.querySelector('button[data-ctx-id="offer-details"]');
                 if (tab) { tab.click(); await sleep(500); }
+                let desc = null;
                 const tc = document.querySelector('[data-ctx="tabContent"]');
                 if (tc) {
                     const txt = tc.innerText || '';
@@ -108,12 +111,13 @@ def get_extraction_script() -> str:
                         let rest = txt.slice(start + 'Дополнительное описание'.length);
                         const end = rest.indexOf('Основная информация');
                         if (end > 0) rest = rest.slice(0, end);
-                        const desc = rest.split(NL).map(x => x.trim()).filter(Boolean).join(' ');
-                        if (desc) {
-                            const offer = offers.find(o => o.external_id === extId);
-                            if (offer) offer.description_raw = desc.slice(0, 500);
-                        }
+                        desc = rest.split(NL).map(x => x.trim()).filter(Boolean).join(' ');
                     }
+                }
+                const offer = offers.find(o => o.external_id === extId);
+                if (offer) {
+                    if (desc) offer.description_raw = desc.slice(0, 500);
+                    if (offerUrl) offer.offer_url = offerUrl.slice(0, 600);
                 }
             } catch (e) { /* skip this offer */ }
         }

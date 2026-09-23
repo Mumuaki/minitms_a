@@ -64,12 +64,49 @@ def _contains_forbidden_equipment(raw_data: Dict[str, Any]) -> bool:
     return False
 
 
+MAX_CARGO_LENGTH_CM = 480
+
+
+def _contains_oversized_cargo(raw_data: Dict[str, Any]) -> bool:
+    """Груз длиннее 480 см, если длина указана явно (например 600x50x50, 610x20x20, 500 cm)."""
+    text = json.dumps(raw_data, ensure_ascii=False).lower()
+    # тройки/пары размеров: 600x50x50, 200x80x250cm, 210 cm x 105 cm x 55 cm, 1x 600x40x30 cm
+    for m in re.finditer(r'(?<![\d.,])(\d+(?:[.,]\d+)?)(?:\s*cm)?\s*[xх×]\s*(\d+(?:[.,]\d+)?)(?:\s*cm)?(?:\s*[xх×]\s*(\d+(?:[.,]\d+)?)(?:\s*cm)?)?', text):
+        vals = []
+        for g in (1, 2, 3):
+            if m.group(g):
+                vals.append(float(m.group(g).replace(',', '.')))
+        if vals and max(vals) > MAX_CARGO_LENGTH_CM:
+            return True
+    # одиночная явная длина: 600 cm / 600cm
+    for m in re.finditer(r'(?<![\d.,])(\d+(?:[.,]\d+)?)\s*cm\b', text):
+        if float(m.group(1).replace(',', '.')) > MAX_CARGO_LENGTH_CM:
+            return True
+    return False
+
+
+def _extract_country_code(place_raw: Optional[str]) -> Optional[str]:
+    """AT 2432 Schwadorf -> AT"""
+    if not place_raw:
+        return None
+    m = re.match(r'^([A-Za-z]{2})\s+\d', place_raw.strip())
+    if m:
+        return m.group(1).upper()
+    m = re.match(r'^([A-Za-z]{2})\s*$', place_raw.strip())
+    if m:
+        return m.group(1).upper()
+    return None
+
+
 def map_to_cargo(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Maps raw extracted data to a normalized Cargo dict (DTO compatible).
     """
     
     if _contains_forbidden_equipment(raw_data):
+        return None
+
+    if _contains_oversized_cargo(raw_data):
         return None
 
     # 1. Price Normalization
@@ -91,11 +128,13 @@ def map_to_cargo(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         "source": "trans.eu",
         "loading_place": {
             "raw": raw_data.get("loading_place_raw"),
-            # City/Zip/Country extraction would go here
+            "country_code": _extract_country_code(raw_data.get("loading_place_raw")),
         },
         "unloading_place": {
             "raw": raw_data.get("unloading_place_raw"),
+            "country_code": _extract_country_code(raw_data.get("unloading_place_raw")),
         },
+        "offer_url": raw_data.get("offer_url"),
         "loading_date_raw": raw_data.get("loading_date_raw"),
         "unloading_date_raw": raw_data.get("unloading_date_raw"),
         "body_type": body_type,

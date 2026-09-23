@@ -39,6 +39,7 @@ def _dto_to_response(c: CargoDto) -> CargoResponse:
         weight=c.weight,
         body_type=c.body_type,
         description=c.description,
+        offer_url=c.offer_url,
         price=c.price,
         distance_trans_eu=c.distance_trans_eu,
         distance_osm=c.distance_osm,
@@ -477,3 +478,62 @@ def accept_cargo(
     db.commit()
     db.refresh(order)
     return {"status": "ok", "order_id": order.id}
+
+
+class PricingRequest(BaseModel):
+    price: Optional[float] = None
+    rate_per_km: Optional[float] = None
+
+
+@router.patch("/{cargo_id}/pricing")
+def update_cargo_pricing(
+    cargo_id: str,
+    req: PricingRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
+):
+    """Ручная корректировка цены или ставки €/км с взаимным пересчётом.
+
+    - rate_per_km задан: Цена = ставка × Дист. (км)
+    - price задан:     €/км = Цена ÷ Дист. (км)
+    """
+    import uuid as _uuid
+    from backend.src.infrastructure.persistence.sqlalchemy.models.cargo_model import Cargo, CargoStatusColor
+    try:
+        _id = _uuid.UUID(cargo_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid cargo id")
+    cargo = db.query(Cargo).filter(Cargo.id == _id).first()
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+
+    total = float(cargo.total_distance or cargo.distance_trans_eu or cargo.distance_osm or 0)
+
+    if req.rate_per_km is not None:
+        rate = float(req.rate_per_km)
+        if total > 0:
+            cargo.price = round(rate * total, 2)
+        cargo.rate_per_km = round(rate, 2)
+    elif req.price is not None:
+        price = float(req.price)
+        cargo.price = round(price, 2)
+        if total > 0:
+            cargo.rate_per_km = round(price / total, 4)
+    else:
+        raise HTTPException(status_code=400, detail="Укажите price или rate_per_km")
+
+    if cargo.rate_per_km is not None:
+        r = cargo.rate_per_km
+        if r < 0.54:
+            cargo.status_color = CargoStatusColor.RED
+        elif r <= 0.59:
+            cargo.status_color = CargoStatusColor.GRAY
+        elif r <= 0.79:
+            cargo.status_color = CargoStatusColor.YELLOW
+        else:
+            cargo.status_color = CargoStatusColor.GREEN
+
+    db.commit()
+    db.refresh(cargo)
+    dto = CargoRepositoryImpl(db)._model_to_dto(cargo)
+    return _dto_to_response(dto)

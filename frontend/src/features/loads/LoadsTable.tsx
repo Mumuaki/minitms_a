@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, EyeOff, CheckCircle } from 'lucide-react';
+import { MapPin, EyeOff, CheckCircle, Contact } from 'lucide-react';
 import { apiClient } from '../../infrastructure/api/client';
 
 interface Cargo {
@@ -12,6 +12,7 @@ interface Cargo {
   weight: number;
   body_type: string;
   description?: string;
+  offer_url?: string;
   price: number;
   distance_trans_eu: number;
   distance_osm?: number;
@@ -56,7 +57,31 @@ const desc = (c: Cargo) => {
   return parts.join(' · ');
 };
 
-type SortKey = 'rate_per_km' | 'price' | 'loading_place' | 'unloading_place' | 'distance_trans_eu';
+const fmtRate = (r?: number | null) => (r != null ? r.toFixed(2) : '');
+
+type SortKey = 'rate_per_km' | 'price' | 'loading_place' | 'unloading_place' | 'distance_trans_eu' | 'empty_run';
+
+const NumInput = ({ value, onCommit, className }: { value: string; onCommit: (v: number) => void; className?: string }) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft !== null ? draft : value;
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      className={'w-20 bg-transparent border border-transparent hover:border-border focus:border-blue-500 rounded px-1 py-0.5 text-right ' + (className || '')}
+      value={shown}
+      onChange={(e) => setDraft(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onBlur={() => {
+        if (draft === null) return;
+        const num = parseFloat(draft.replace(',', '.'));
+        setDraft(null);
+        if (!isNaN(num)) onCommit(num);
+      }}
+      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+    />
+  );
+};
 
 export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTableProps) => {
   const [sortKey, setSortKey] = useState<SortKey>('rate_per_km');
@@ -66,9 +91,11 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
   if (loads.length === 0) return <div className="text-center p-4 text-muted">Нет грузов.</div>;
 
   const val = (c: Cargo, k: SortKey): any => {
-    if (k === 'loading_place') return c.loading_place ? c.loading_place.address : '';
-    if (k === 'unloading_place') return c.unloading_place ? c.unloading_place.address : '';
-    if (k === 'rate_per_km') return c.profitability && c.profitability.rate_per_km != null ? c.profitability.rate_per_km : 0;
+    if (k === 'loading_place') return (c.loading_place && c.loading_place.country_code ? c.loading_place.country_code : 'zz') + ' ' + (c.loading_place ? c.loading_place.address : '');
+    if (k === 'unloading_place') return (c.unloading_place && c.unloading_place.country_code ? c.unloading_place.country_code : 'zz') + ' ' + (c.unloading_place ? c.unloading_place.address : '');
+    if (k === 'rate_per_km') return c.profitability && c.profitability.rate_per_km != null ? c.profitability.rate_per_km : -1;
+    if (k === 'empty_run') return c.profitability && c.profitability.empty_run_km != null ? c.profitability.empty_run_km : -1;
+    if (k === 'price') return calcPrice(c) != null ? calcPrice(c) : -1;
     return c[k] ?? '';
   };
 
@@ -95,6 +122,11 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
     onChanged && onChanged();
   };
 
+  const savePricing = async (load: Cargo, body: { price?: number; rate_per_km?: number }) => {
+    try { await apiClient.patch('/cargos/' + load.id + '/pricing', body); } catch { /* ignore */ }
+    onChanged && onChanged();
+  };
+
   return (
     <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
       <table className="min-w-full divide-y divide-border text-sm">
@@ -106,7 +138,7 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
             <th className="px-3 py-2 text-left font-medium">Описание</th>
             <th className="px-3 py-2 text-left font-medium">Даты</th>
             {th('distance_trans_eu', 'Дист. (км)')}
-            <th className="px-3 py-2 text-left font-medium">Подача, км</th>
+            {th('empty_run', 'Подача, км')}
             {th('price', 'Цена (€)')}
             {th('rate_per_km', '€/км')}
             <th className="px-3 py-2 text-left font-medium">Действия</th>
@@ -117,6 +149,9 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
             const cc = load.profitability ? load.profitability.color_code : undefined;
             const dot = cc ? DOT_COLOR[cc] : '#9E9E9E';
             const bg = cc ? ROW_BG[cc] : undefined;
+            const shownPrice = calcPrice(load);
+            const isCalc = !(load.price != null && load.price > 0) && shownPrice != null;
+            const totalKm = load.profitability && load.profitability.total_distance != null ? load.profitability.total_distance : load.distance_trans_eu;
             return (
               <tr key={load.id} onClick={() => onSelect && onSelect(load)} className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" style={bg ? { backgroundColor: bg } : undefined}>
                 <td className="px-3 py-2"><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', backgroundColor: dot }} /></td>
@@ -124,23 +159,25 @@ export const LoadsTable = ({ loads, isLoading, onSelect, onChanged }: LoadsTable
                 <td className="px-3 py-2">{flagEmoji(load.unloading_place && load.unloading_place.country_code)} {load.unloading_place ? load.unloading_place.address : '—'}</td>
                 <td className="px-3 py-2 text-muted">{desc(load)}</td>
                 <td className="px-3 py-2 whitespace-nowrap">{load.loading_date || '—'}{load.unloading_date ? ' → ' + load.unloading_date : ''}</td>
-                <td className="px-3 py-2 text-right">{load.profitability && load.profitability.total_distance != null ? load.profitability.total_distance.toFixed(0) : (load.distance_trans_eu || '—')}</td>
+                <td className="px-3 py-2 text-right">{totalKm != null ? totalKm.toFixed(0) : '—'}</td>
                 <td className="px-3 py-2 text-right">{load.profitability && load.profitability.empty_run_km != null ? load.profitability.empty_run_km.toFixed(0) : '—'}</td>
                 <td className="px-3 py-2 text-right font-bold">
-                  {(() => {
-                    const p = calcPrice(load);
-                    const isCalc = !(load.price != null && load.price > 0);
-                    return p != null ? (
-                      <span title={isCalc ? 'Расчётная цена: 0,85 €/км × полная дистанция (цена заказчиком не заявлена)' : undefined}>
-                        {p} €{isCalc && <span className="text-muted font-normal"> (расч.)</span>}
-                      </span>
-                    ) : '—';
-                  })()}
+                  <NumInput
+                    value={shownPrice != null ? String(shownPrice) : ''}
+                    onCommit={(v) => savePricing(load, { price: v })}
+                  />
+                  {isCalc && <span className="text-muted font-normal text-xs">(расч.)</span>}
                 </td>
-                <td className="px-3 py-2 text-right font-semibold">{load.profitability && load.profitability.rate_per_km != null ? load.profitability.rate_per_km.toFixed(2) : '—'}</td>
+                <td className="px-3 py-2 text-right font-semibold">
+                  <NumInput
+                    value={fmtRate(load.profitability && load.profitability.rate_per_km)}
+                    onCommit={(v) => savePricing(load, { rate_per_km: v })}
+                  />
+                </td>
                 <td className="px-3 py-2">
                   <div className="flex gap-1">
                     <button title="Открыть на карте" className="p-1 hover:bg-black/10 rounded" onClick={(e) => { e.stopPropagation(); onSelect && onSelect(load); }}><MapPin size={15} /></button>
+                    <button title="Контакт (карточка на Trans.eu)" className="p-1 hover:bg-black/10 rounded" onClick={(e) => { e.stopPropagation(); window.open(load.offer_url || 'https://platform.trans.eu/exchange/offers', '_blank'); }}><Contact size={15} /></button>
                     <button title="Скрыть" className="p-1 hover:bg-black/10 rounded" onClick={(e) => act(e, () => apiClient.patch('/cargos/' + load.id + '/hide'))}><EyeOff size={15} /></button>
                     <button title="Принять (создать заказ)" className="p-1 hover:bg-black/10 rounded" onClick={(e) => act(e, () => apiClient.post('/cargos/' + load.id + '/accept'))}><CheckCircle size={15} /></button>
                   </div>

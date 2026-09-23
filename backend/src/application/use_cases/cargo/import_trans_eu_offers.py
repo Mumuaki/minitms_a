@@ -158,8 +158,10 @@ class ImportTransEuOffersUseCase:
         loading_lat, loading_lon = loading_coords if loading_coords else (0.0, 0.0)
         unloading_lat, unloading_lon = unloading_coords if unloading_coords else (0.0, 0.0)
 
-        loading_loc = LocationDto(address=loading_raw, country_code="EU", lat=loading_lat, lon=loading_lon)
-        unloading_loc = LocationDto(address=unloading_raw, country_code="EU", lat=unloading_lat, lon=unloading_lon)
+        loading_cc = (item.get("loading_place") or {}).get("country_code") or "EU"
+        unloading_cc = (item.get("unloading_place") or {}).get("country_code") or "EU"
+        loading_loc = LocationDto(address=loading_raw, country_code=loading_cc, lat=loading_lat, lon=loading_lon)
+        unloading_loc = LocationDto(address=unloading_raw, country_code=unloading_cc, lat=unloading_lat, lon=unloading_lon)
 
         # OSRM: A→B (подача) и B→C (перевозка)
         empty_run_km = 0.0
@@ -203,6 +205,7 @@ class ImportTransEuOffersUseCase:
             weight=item.get("weight"),
             body_type=(item.get("body_type") or "")[:100] or None,
             description=(item.get("description") or "")[:500] or None,
+            offer_url=(item.get("offer_url") or "")[:500] or None,
             price=effective_price,
             distance_trans_eu=item.get("distance_trans_eu"),
             distance_osm=int(cargo_run_km) if cargo_run_km else None,

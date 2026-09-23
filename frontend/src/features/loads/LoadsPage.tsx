@@ -340,7 +340,13 @@ export const LoadsPage = () => {
       <Modal isOpen={!!selectedCargo} onClose={() => setSelectedCargo(null)} title="Детали груза">
         {selectedCargo && (
           <div className="space-y-2 text-sm">
-            <p><b>Заявка:</b> {selectedCargo.external_id || '—'}</p>
+            <p><b>Заявка:</b>{' '}
+              {selectedCargo.offer_url ? (
+                <a href={selectedCargo.offer_url} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 underline" title="Открыть карточку на портале Trans.eu">{selectedCargo.external_id || '—'}</a>
+              ) : (
+                <a href="https://platform.trans.eu/exchange/offers" target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 underline" title="Открыть портал Trans.eu">{selectedCargo.external_id || '—'}</a>
+              )}
+            </p>
             <p><b>Загрузка:</b> {selectedCargo.loading_place?.address || '—'} ({selectedCargo.loading_place?.country_code || '—'})</p>
             <p><b>Выгрузка:</b> {selectedCargo.unloading_place?.address || '—'} ({selectedCargo.unloading_place?.country_code || '—'})</p>
             <p><b>Дата загрузки:</b> {selectedCargo.loading_date || '—'}</p>

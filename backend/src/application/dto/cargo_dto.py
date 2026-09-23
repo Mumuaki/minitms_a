@@ -40,6 +40,7 @@ class CargoDto(BaseModel):
     weight: Optional[float]
     body_type: Optional[str]
     description: Optional[str] = None
+    offer_url: Optional[str] = None
     price: Optional[float]
     distance_trans_eu: Optional[int]
     distance_osm: Optional[int]
