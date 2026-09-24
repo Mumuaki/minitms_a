@@ -38,6 +38,8 @@ class TransEuClient:
         # ALWAYS run visible so user can watch via noVNC (http://server:6080)
         self.headless = False
         self.user_data_dir = settings.BROWSER_PROFILE_DIR
+        # Признак активного импорта/поиска: браузер занят
+        self.busy = False
 
     async def start(self):
         """
@@ -51,14 +53,18 @@ class TransEuClient:
         async with _trans_eu_client_lock:
             # If already started and context is valid, do nothing
             if self.context:
+                alive = False
                 try:
-                    # Check if context is still alive
-                    if len(self.context.pages) >= 0:
-                        logger.info("TransEuClient already started and active.")
-                        return
+                    pages = self.context.pages
+                    alive = bool(pages) and any(not p.is_closed() for p in pages)
                 except Exception:
-                    logger.warning("Existing browser context appears dead. Restarting...")
-                    self.context = None
+                    alive = False
+                if alive:
+                    logger.info("TransEuClient already started and active.")
+                    return
+                logger.warning("Existing browser context appears dead. Restarting (relaunching browser)...")
+                self.context = None
+                self.page = None
 
             # Ensure DISPLAY is set for Xvfb virtual display (Linux only)
             if os.name != 'nt' and not os.environ.get("DISPLAY"):
@@ -469,6 +475,39 @@ class TransEuClient:
 
 
     async def search_offers(
+        self,
+        loading_location: str,
+        unloading_location: str,
+        date_from: str = None,
+        date_to: str = None,
+        unloading_date_from: str = None,
+        unloading_date_to: str = None,
+        weight_to: str = "0.9",
+        length_to: str = None,
+        loading_radius: int = 75,
+        unloading_radius: int = 75,
+    ):
+        """Автоматический поиск. Пока выполняется — браузер помечен занятым."""
+        if self.busy:
+            raise Exception("Браузер Trans.eu уже используется другим импортом.")
+        self.busy = True
+        try:
+            return await self._search_offers_impl(
+                loading_location=loading_location,
+                unloading_location=unloading_location,
+                date_from=date_from,
+                date_to=date_to,
+                unloading_date_from=unloading_date_from,
+                unloading_date_to=unloading_date_to,
+                weight_to=weight_to,
+                length_to=length_to,
+                loading_radius=loading_radius,
+                unloading_radius=unloading_radius,
+            )
+        finally:
+            self.busy = False
+
+    async def _search_offers_impl(
         self,
         loading_location: str,
         unloading_location: str,
@@ -911,6 +950,21 @@ class TransEuClient:
             return False
 
     async def search_offers_manual(self, timeout_seconds: int = 600):
+        """Полуавтоматический импорт. Пока выполняется — браузер помечен занятым."""
+        if self.busy:
+            raise Exception("Браузер Trans.eu уже используется другим импортом.")
+        self.busy = True
+        try:
+            return await self._search_offers_manual_impl(timeout_seconds)
+        except Exception as e:
+            msg = str(e)
+            if 'has been closed' in msg or 'Target page' in msg or 'Target closed' in msg or 'Browser has been closed' in msg:
+                raise Exception("Браузер Trans.eu был закрыт во время импорта. Запустите импорт заново.") from e
+            raise
+        finally:
+            self.busy = False
+
+    async def _search_offers_manual_impl(self, timeout_seconds: int = 600):
         """Полуавтоматический режим: оператор вручную проходит Cloudflare и задаёт фильтры,
         а скрапер только парсит результаты поиска."""
         import time

@@ -234,6 +234,9 @@ async def open_offer(
     from backend.src.infrastructure.external_services.trans_eu.client import TransEuClient
     try:
         client = await TransEuClient.get_instance()
+        # НИКОГДА не трогаем браузер, пока идёт импорт/поиск
+        if getattr(client, "busy", False):
+            raise HTTPException(status_code=409, detail="Идёт импорт — браузер занят. Попробуйте после завершения импорта.")
         if client.page is None:
             # Убить зависшие процессы chrome и снять блокировки профиля
             import subprocess
