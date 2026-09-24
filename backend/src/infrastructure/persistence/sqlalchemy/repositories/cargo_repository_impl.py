@@ -219,7 +219,7 @@ class CargoRepositoryImpl(CargoRepository):
         }
         
         stmt = stmt.on_conflict_do_update(
-            index_elements=["source", "external_id", "snapshot_time_bucket"],
+            index_elements=["source", "external_id"],
             set_=update_dict
         ).returning(Cargo)
         

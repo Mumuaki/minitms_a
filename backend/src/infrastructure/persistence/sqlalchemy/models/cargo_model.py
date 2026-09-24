@@ -108,7 +108,7 @@ class Cargo(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint('source', 'external_id', 'snapshot_time_bucket', name='uix_cargo_source_ext_bucket'),
+        UniqueConstraint('source', 'external_id', name='uix_cargo_source_ext'),
     )
 
     def __repr__(self) -> str:

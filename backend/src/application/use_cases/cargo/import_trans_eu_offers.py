@@ -22,6 +22,36 @@ logger = logging.getLogger(__name__)
 GREEN_RATE = 0.85  # максимальная ставка "зелёной" рентабельности (€/км)
 
 
+def _cleanup_stale(db, imported_ids):
+    """Убирает из таблицы недействительные заявки:
+    - с прошедшей датой загрузки;
+    - отсутствующие в текущем поиске (кроме скрытых пользователем).
+    """
+    if db is None or not imported_ids:
+        return 0
+    from datetime import date as _date
+    from backend.src.infrastructure.persistence.sqlalchemy.models.cargo_model import Cargo
+    removed = 0
+    try:
+        removed += db.query(Cargo).filter(
+            Cargo.source == "trans.eu",
+            Cargo.loading_date < _date.today(),
+        ).delete(synchronize_session=False)
+        removed += db.query(Cargo).filter(
+            Cargo.source == "trans.eu",
+            Cargo.is_hidden == False,  # noqa: E712
+            ~Cargo.external_id.in_(list(imported_ids)),
+        ).delete(synchronize_session=False)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Cleanup stale cargos failed: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+    return removed
+
+
 def _parse_date(s):
     """22.09, 08:00 - 14:00 -> date(2026, 9, 22)."""
     import re
@@ -97,6 +127,8 @@ class ImportTransEuOffersUseCase:
                 for item in results_list:
                     try:
                         dto = await self._map_dict_to_dto_async(item, vehicle_coords)
+                        if dto is None:  # устаревшая/недействительная заявка
+                            continue
                         existing = self.cargo_repository.get_by_external_id(dto.external_id)
                         if existing:
                             dto.id = existing.id
@@ -106,6 +138,7 @@ class ImportTransEuOffersUseCase:
                         saved_cargos.append(saved)
                     except Exception as e:
                         logger.error(f"Failed to save cargo {item.get('external_id')}: {e}")
+            _cleanup_stale(db, [c.external_id for c in saved_cargos])
             return saved_cargos
         except Exception as e:
             logger.error(f"Import failed: {e}")
@@ -129,6 +162,8 @@ class ImportTransEuOffersUseCase:
                 for item in results_list:
                     try:
                         dto = await self._map_dict_to_dto_async(item, vehicle_coords)
+                        if dto is None:  # устаревшая/недействительная заявка
+                            continue
                         existing = self.cargo_repository.get_by_external_id(dto.external_id)
                         if existing:
                             dto.id = existing.id
@@ -138,6 +173,7 @@ class ImportTransEuOffersUseCase:
                         saved_cargos.append(saved)
                     except Exception as e:
                         logger.error(f"Failed to save cargo {item.get('external_id')}: {e}")
+            _cleanup_stale(db, [c.external_id for c in saved_cargos])
             return saved_cargos
         except Exception as e:
             logger.error(f"Manual import failed: {e}")
@@ -194,13 +230,18 @@ class ImportTransEuOffersUseCase:
                     price_eur=GREEN_RATE * total_km, empty_run_km=empty_run_km, cargo_km=cargo_run_km
                 )
 
+        loading_date = _parse_date(item.get("loading_date_raw"))
+        from datetime import date as _today_date
+        if loading_date and loading_date < _today_date.today():
+            return None  # заявка уже недействительна (дата загрузки прошла)
+
         dto = CargoDto(
             id="",
             external_id=(item.get("external_id") or f"gen-{item.get('company_name')}-{item.get('price')}")[:100],
             source="trans.eu",
             loading_place=loading_loc,
             unloading_place=unloading_loc,
-            loading_date=_parse_date(item.get("loading_date_raw")),
+            loading_date=loading_date,
             unloading_date=_parse_date(item.get("unloading_date_raw")),
             weight=item.get("weight"),
             body_type=(item.get("body_type") or "")[:100] or None,
