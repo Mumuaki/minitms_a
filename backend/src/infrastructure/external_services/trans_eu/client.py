@@ -1122,6 +1122,71 @@ class TransEuClient:
         except Exception as e:
             logger.error(f"Error setting date {name} via calendar: {e}")
 
+    async def _select_location_option(self, container, attempt: str, iso: str, zip_code: str, city_en: str) -> bool:
+        """Фиксирует адрес: выбирает в динамическом списке подсказок запись с максимальным
+        совпадением и кликает по ней (docs/Поиск_процедура.md, Шаг 4).
+
+        CSS-классы портала хешируются и меняются между сборками, поэтому селекторы
+        перебираются от структурных (role="option") к запасным.
+        """
+        import json as _json
+        option_selectors = [
+            '[role="option"]',
+            'li[role="option"]',
+            '[data-ctx="option"]',
+            '[data-ctx="select-option"]',
+            '[data-ctx="suggestion"]',
+            '[data-ctx="select-options"] > *',
+            'ul[role="listbox"] > li',
+            'div[class*="SelectOption"]',
+            'div[class*="Option__option"]',
+            'div[class*="option"]',
+        ]
+        tokens = [x.lower() for x in (iso, zip_code, city_en) if x]
+        candidates = []
+        for sel in option_selectors:
+            try:
+                loc = self.page.locator(sel)
+                cnt = await loc.count()
+            except Exception:
+                continue
+            for idx in range(min(cnt, 30)):
+                try:
+                    el = loc.nth(idx)
+                    if not await el.is_visible():
+                        continue
+                    txt = ((await el.text_content()) or "").strip()
+                except Exception:
+                    continue
+                if not txt:
+                    continue
+                low = txt.lower()
+                if "как минимум" in low or "at least" in low:
+                    continue
+                score = sum(2 for tk in tokens if tk in low)
+                candidates.append((score, len(txt), sel, idx, txt))
+        if not candidates:
+            logger.warning("Список подсказок адреса не найден для '" + attempt + "'")
+            try:
+                data = await self.page.evaluate("() => { const out = { visible: [] }; document.querySelectorAll('[data-ctx=modals-region] *, [role=listbox] *').forEach(el => { const t = (el.innerText || '').trim(); if (!t || t.length > 200) return; const st = window.getComputedStyle(el); if (st.display === 'none' || st.visibility === 'hidden') return; out.visible.push({ tag: el.tagName, ctx: el.getAttribute('data-ctx'), cls: String(el.className).slice(0, 90), text: t.slice(0, 90) }); }); return out; }")
+                data["attempt"] = attempt
+                with open('/tmp/location_options_debug.json', 'w', encoding='utf-8') as f:
+                    _json.dump(data, f, ensure_ascii=False, indent=1)
+                logger.info("Диагностика списка подсказок сохранена: /tmp/location_options_debug.json")
+            except Exception as dbg_err:
+                logger.warning("Не удалось сохранить диагностику подсказок: " + str(dbg_err))
+            return False
+        candidates.sort(key=lambda c: (c[0], c[1]), reverse=True)
+        for score, _ln, sel, idx, txt in candidates[:3]:
+            try:
+                await self.page.locator(sel).nth(idx).click(force=True)
+                await self.page.wait_for_timeout(1000)
+                logger.info("Адрес зафиксирован: '" + txt[:70] + "' (селектор " + sel + ", совпадений " + str(score) + ")")
+                return True
+            except Exception as e:
+                logger.warning("Не удалось кликнуть по варианту '" + txt[:50] + "' (" + sel + "): " + str(e))
+        return False
+
     async def _set_location_field(self, container_selector: str, value: str, radius: int = 0):
         """
         Refined location setter following strict 5-step rule:
@@ -1284,36 +1349,13 @@ class TransEuClient:
                 await self.page.keyboard.type(attempt, delay=150)
                 await self.page.wait_for_timeout(2000)
                 
-                # 3. Wait for options and click best match (skip hint rows)
-                try:
-                    options_locator = self.page.locator(modal_selector)
-                    await options_locator.first.wait_for(state="visible", timeout=8000)
-                    options_count = await options_locator.count()
-                    
-                    best_index = -1
-                    longest_len = 0
-                    for idx in range(options_count):
-                        text = await options_locator.nth(idx).text_content()
-                        txt = (text or "").strip()
-                        if "как минимум" in txt or "at least" in txt.lower():
-                            continue
-                        if len(txt) > longest_len:
-                            longest_len = len(txt)
-                            best_index = idx
-                            
-                    if best_index < 0:
-                        logger.warning(f"No valid options for '{attempt}'")
-                        continue
-                        
-                    logger.info(f"Selecting option at index {best_index} with text length {longest_len}")
-                    await options_locator.nth(best_index).click(force=True)
-                    
-                    logger.info(f"Success at Step {step_num} with '{attempt}'")
+                # 3. Фиксация адреса: клик по записи в динамическом списке (docs/Поиск_процедура.md, Шаг 4)
+                if await self._select_location_option(container, attempt, iso, zip_code, city_en):
+                    logger.info("Success at Step " + str(step_num) + " with '" + attempt + "'")
                     success = True
                     break
-                except Exception as e:
-                    logger.warning(f"Modal did not appear for step {step_num} ('{attempt}'): {e}")
-                    continue
+                logger.warning("Address not fixed for step " + str(step_num) + " ('" + attempt + "')")
+                continue
 
             if not success:
                 logger.error(f"Failed to set location '{value}' after all steps.")
