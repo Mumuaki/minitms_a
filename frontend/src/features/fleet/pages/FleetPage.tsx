@@ -160,8 +160,8 @@ export const FleetPage = () => {
     
     // Открываем окно noVNC для визуального контроля скрапинга СРАЗУ по клику
     // Это важно сделать до `await`, иначе браузер сочтет это popup-ом без действия пользователя и заблокирует.
-    const noVncUrl = `http://${window.location.hostname}:6080/vnc.html?autoconnect=true&resize=scale`;
-    const vncWindow = window.open(noVncUrl, '_blank', 'width=1024,height=768');
+    const noVncUrl = '/novnc/vnc.html?autoconnect=true&resize=scale';
+    const vncWindow = window.open(noVncUrl, 'minitms_novnc');
     
     if (!vncWindow) {
         setLocationError('Браузер заблокировал всплывающее окно трансляции скрапера. Пожалуйста, разрешите всплывающие окна для работы системы.');
