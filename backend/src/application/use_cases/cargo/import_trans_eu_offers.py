@@ -146,7 +146,9 @@ class ImportTransEuOffersUseCase:
         finally:
             pass
 
-    async def execute_manual(self, timeout_seconds: int = 600, db: Optional[Session] = None) -> List[CargoDto]:
+    async def execute_manual(self, timeout_seconds: int = 600, db: Optional[Session] = None,
+                           ld_from: str = None, ld_to: str = None,
+                           ud_from: str = None, ud_to: str = None) -> List[CargoDto]:
         """Полуавтоматический режим: оператор вручную выполняет поиск, скрапер парсит результат."""
         client = await TransEuClient.get_instance()
         try:
@@ -154,7 +156,10 @@ class ImportTransEuOffersUseCase:
             if not await client.login():
                 raise Exception("Failed to login to Trans.eu")
 
-            results_list = await client.search_offers_manual(timeout_seconds=timeout_seconds)
+            results_list = await client.search_offers_manual(
+                timeout_seconds=timeout_seconds,
+                ld_from=ld_from, ld_to=ld_to, ud_from=ud_from, ud_to=ud_to,
+            )
 
             vehicle_coords = self._get_vehicle_coords(db)
             saved_cargos = []

@@ -51,7 +51,7 @@ _scraper_state = {
 _MANUAL_JOBS: Dict[str, Dict[str, Any]] = {}
 
 
-async def _run_manual_import_job(job_id: str, timeout_seconds: int) -> None:
+async def _run_manual_import_job(job_id: str, timeout_seconds: int, dates: Optional[Dict[str, Any]] = None) -> None:
     """Фоновое выполнение полуавтоматического импорта Trans.eu."""
     job = _MANUAL_JOBS.get(job_id)
     if not job:
@@ -61,7 +61,7 @@ async def _run_manual_import_job(job_id: str, timeout_seconds: int) -> None:
     try:
         repo = CargoRepositoryImpl(db)
         use_case = ImportTransEuOffersUseCase(repo)
-        result = await use_case.execute_manual(timeout_seconds=timeout_seconds, db=db)
+        result = await use_case.execute_manual(timeout_seconds=timeout_seconds, db=db, **(dates or {}))
         job["status"] = "done"
         job["saved"] = len(result)
         job["total"] = len(result)
@@ -184,6 +184,10 @@ async def import_trans_eu(
 async def import_trans_eu_manual(
     current_user = Depends(require_role(["administrator", "director", "dispatcher"])),
     timeout_seconds: int = Query(600, description="Сколько секунд ждать ручной поиск"),
+    ld_from: Optional[str] = Query(None, description="Дата загрузки с (DD.MM.YYYY)"),
+    ld_to: Optional[str] = Query(None, description="Дата загрузки по (DD.MM.YYYY)"),
+    ud_from: Optional[str] = Query(None, description="Дата выгрузки с (DD.MM.YYYY)"),
+    ud_to: Optional[str] = Query(None, description="Дата выгрузки по (DD.MM.YYYY)"),
 ):
     # Один ручной импорт за раз — браузер общий
     for j in _MANUAL_JOBS.values():
@@ -199,7 +203,8 @@ async def import_trans_eu_manual(
         "message": "Импорт запущен",
         "started_at": datetime.utcnow().isoformat(),
     }
-    asyncio.create_task(_run_manual_import_job(job_id, timeout_seconds))
+    dates = {"ld_from": ld_from, "ld_to": ld_to, "ud_from": ud_from, "ud_to": ud_to}
+    asyncio.create_task(_run_manual_import_job(job_id, timeout_seconds, dates))
     return _MANUAL_JOBS[job_id]
 
 

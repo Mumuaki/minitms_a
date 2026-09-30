@@ -764,52 +764,7 @@ class TransEuClient:
                 else:
                     logger.warning("Weight input not found by data-ctx, check DOM.")
 
-            # --- 5. Length (LDM) — Left field «С» = 4.8 (всегда, по спецификации) ---
-            logger.info("Setting LDM From (left field) to default 4.8 per spec")
-            ldm_from_set = False
-            _ldm_labels = ["Длина (погрузочные метры)", "Погрузочные метры", "LDM", "Loading meters", "Długość ładunkowa", "Load meters"]
-            for _ctx in [adv_filters, self.page]:
-                if ldm_from_set:
-                    break
-                for _label in _ldm_labels:
-                    try:
-                        _label_el = _ctx.locator(f"label:has-text('{_label}')").first
-                        if await _label_el.count() > 0 and await _label_el.is_visible():
-                            _container = _label_el.locator("..")
-                            _inputs = _container.locator("input")
-                            if await _inputs.count() < 1:
-                                _container = _container.locator("..")
-                                _inputs = _container.locator("input")
-                            if await _inputs.count() >= 1:
-                                _inp = _inputs.nth(0)
-                                if await _inp.is_visible():
-                                    await _inp.click()
-                                    await self.page.keyboard.press("Control+A")
-                                    await self.page.keyboard.press("Backspace")
-                                    await _inp.fill("4.8")
-                                    await _inp.press("Tab")
-                                    await self.page.wait_for_timeout(500)
-                                    _val = await _inp.input_value()
-                                    if "4" in _val:
-                                        logger.info(f"LDM From set to 4.8 via label '{_label}': {_val}")
-                                        ldm_from_set = True
-                                        break
-                                    # Повтор с запятой (европейский формат)
-                                    await _inp.click()
-                                    await self.page.keyboard.press("Control+A")
-                                    await self.page.keyboard.press("Backspace")
-                                    await _inp.fill("4,8")
-                                    await _inp.press("Tab")
-                                    await self.page.wait_for_timeout(500)
-                                    _val = await _inp.input_value()
-                                    if "4" in _val:
-                                        logger.info(f"LDM From set to 4,8 via label '{_label}': {_val}")
-                                        ldm_from_set = True
-                                        break
-                    except Exception:
-                        pass
-            if not ldm_from_set:
-                logger.warning("LDM From (left field) input not found — панель 'БОЛЬШЕ ФИЛЬТРОВ' может быть не открыта.")
+            # --- 5. Length (LDM): заполняется ТОЛЬКО правая часть («До») — блок 5b ---
 
             # --- 5b. Length (LDM) — Right field «До» (из параметра запроса) ---
             if length_to:
@@ -949,13 +904,19 @@ class TransEuClient:
             await self.page.screenshot(path="search_failed.png")
             return False
 
-    async def search_offers_manual(self, timeout_seconds: int = 600):
-        """Полуавтоматический импорт. Пока выполняется — браузер помечен занятым."""
+    async def search_offers_manual(self, timeout_seconds: int = 600,
+                                   ld_from: str = None, ld_to: str = None,
+                                   ud_from: str = None, ud_to: str = None):
+        """Полуавтоматический импорт. Пока выполняется — браузер помечен занятым.
+
+        Даты (DD.MM.YYYY), переданные оператором из приложения, применяются в фильтрах портала
+        до ручного поиска — чтобы можно было искать с произвольными датами.
+        """
         if self.busy:
             raise Exception("Браузер Trans.eu уже используется другим импортом.")
         self.busy = True
         try:
-            return await self._search_offers_manual_impl(timeout_seconds)
+            return await self._search_offers_manual_impl(timeout_seconds, ld_from, ld_to, ud_from, ud_to)
         except Exception as e:
             msg = str(e)
             if 'has been closed' in msg or 'Target page' in msg or 'Target closed' in msg or 'Browser has been closed' in msg:
@@ -964,7 +925,9 @@ class TransEuClient:
         finally:
             self.busy = False
 
-    async def _search_offers_manual_impl(self, timeout_seconds: int = 600):
+    async def _search_offers_manual_impl(self, timeout_seconds: int = 600,
+                                          ld_from: str = None, ld_to: str = None,
+                                          ud_from: str = None, ud_to: str = None):
         """Полуавтоматический режим: оператор вручную проходит Cloudflare и задаёт фильтры,
         а скрапер только парсит результаты поиска."""
         import time
@@ -975,6 +938,13 @@ class TransEuClient:
             if not await self._navigate_to_offers_via_menu():
                 await self.page.goto("https://platform.trans.eu/exchange/offers", timeout=60000)
         await self.page.wait_for_timeout(3000)
+
+        # Даты из приложения (если заданы) — применяем в фильтрах портала до ручного поиска
+        if any([ld_from, ld_to, ud_from, ud_to]):
+            await self._apply_manual_dates({
+                "loading_from": ld_from, "loading_to": ld_to,
+                "unloading_from": ud_from, "unloading_to": ud_to,
+            })
 
         logger.info(f"Полуавтоматический режим: ждём ручной поиск оператором (до {timeout_seconds} сек)...")
         result_selectors = [
@@ -1016,6 +986,54 @@ class TransEuClient:
                 logger.warning(f"Failed to map item: {map_err}")
         logger.info(f"Successfully mapped {len(results)} offers.")
         return results
+
+    async def _apply_manual_dates(self, dates: dict) -> None:
+        """Применяет даты загрузки/выгрузки в фильтрах портала (для ручного поиска).
+
+        Вызывается, когда оператор задал даты в приложении; далее оператор ищет вручную.
+        """
+        try:
+            expand_selectors = [
+                'button:has-text("РАЗВЕРНУТЬ ФИЛЬТРЫ")', 'button:has-text("Развернуть фильтры")',
+                'button:has-text("EXPAND FILTERS")', 'button:has-text("Expand filters")',
+                'button[data-ctx="basic-filters-form-hide-filters-preview"]',
+            ]
+            for sel in expand_selectors:
+                try:
+                    btn = self.page.locator(sel).first
+                    if await btn.is_visible(timeout=1500):
+                        await btn.click(force=True)
+                        await self.page.wait_for_timeout(1500)
+                        break
+                except Exception:
+                    continue
+            more_selectors = [
+                'button:has-text("БОЛЬШЕ ФИЛЬТРОВ")', 'button:has-text("Больше фильтров")',
+                'button:has-text("MORE FILTERS")', 'button:has-text("More filters")',
+            ]
+            for sel in more_selectors:
+                try:
+                    btn = self.page.locator(sel).first
+                    if await btn.is_visible(timeout=1500):
+                        await btn.click(force=True)
+                        await self.page.wait_for_timeout(1500)
+                        break
+                except Exception:
+                    continue
+
+            adv = self.page.locator('div[data-ctx="advanced-filters"]')
+            await adv.wait_for(state="attached", timeout=10000)
+            if dates.get("unloading_to"):
+                await self._set_date_input(adv, "to", 1, dates["unloading_to"])
+            if dates.get("unloading_from"):
+                await self._set_date_input(adv, "from", 1, dates["unloading_from"])
+            if dates.get("loading_to"):
+                await self._set_date_input(adv, "to", 0, dates["loading_to"])
+            if dates.get("loading_from"):
+                await self._set_date_input(adv, "from", 0, dates["loading_from"])
+            logger.info(f"Даты применены в фильтрах портала: {dates}")
+        except Exception as e:
+            logger.warning(f"Не удалось применить даты в фильтрах портала: {e}")
 
     async def _set_date_input(self, parent_locator, name: str, index: int, value: str):
         """

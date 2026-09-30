@@ -18,6 +18,10 @@ interface SearchFormData {
   unloading_radius: number;
   weight_to: string;
   length_to: string;
+  loading_date_from: string;
+  loading_date_to: string;
+  unloading_date_from: string;
+  unloading_date_to: string;
 }
 
 const INITIAL_SEARCH: SearchFormData = {
@@ -27,6 +31,10 @@ const INITIAL_SEARCH: SearchFormData = {
   unloading_radius: 75,
   weight_to: '24.0',
   length_to: '13.6',
+  loading_date_from: '',
+  loading_date_to: '',
+  unloading_date_from: '',
+  unloading_date_to: '',
 };
 
 const SAVED_FILTERS_KEY = 'minitms.loads.searchFilters';
@@ -79,6 +87,10 @@ export const LoadsPage = () => {
         unloading_radius: Number(parsed.unloading_radius ?? 75),
         weight_to: String(parsed.weight_to ?? '24.0'),
         length_to: String(parsed.length_to ?? '13.6'),
+        loading_date_from: String(parsed.loading_date_from ?? ''),
+        loading_date_to: String(parsed.loading_date_to ?? ''),
+        unloading_date_from: String(parsed.unloading_date_from ?? ''),
+        unloading_date_to: String(parsed.unloading_date_to ?? ''),
       });
     } catch {
       // повреждённые данные игнорируем
@@ -125,8 +137,19 @@ export const LoadsPage = () => {
       window.open('/novnc/vnc.html', 'minitms_novnc');
 
       // Импорт работает в фоне на сервере — сразу получаем job_id и опрашиваем статус
+      const toPortalDate = (v: string) => {
+        if (!v) return undefined;
+        const parts = v.split('-');
+        return parts.length === 3 ? parts[2] + '.' + parts[1] + '.' + parts[0] : undefined;
+      };
       const resp = await apiClient.post('/scraping/import_trans_eu_manual', null, {
-        params: { timeout_seconds: 600 },
+        params: {
+          timeout_seconds: 600,
+          ld_from: toPortalDate(searchForm.loading_date_from),
+          ld_to: toPortalDate(searchForm.loading_date_to),
+          ud_from: toPortalDate(searchForm.unloading_date_from),
+          ud_to: toPortalDate(searchForm.unloading_date_to),
+        },
         timeout: 30000,
       });
 
@@ -272,6 +295,22 @@ export const LoadsPage = () => {
                   value={searchForm.length_to}
                   onChange={handleSearchInput}
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Дата загрузки с</label>
+                <input type="date" name="loading_date_from" className="input w-full" value={searchForm.loading_date_from} onChange={handleSearchInput} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Дата загрузки по</label>
+                <input type="date" name="loading_date_to" className="input w-full" value={searchForm.loading_date_to} onChange={handleSearchInput} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Дата выгрузки с</label>
+                <input type="date" name="unloading_date_from" className="input w-full" value={searchForm.unloading_date_from} onChange={handleSearchInput} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Дата выгрузки по</label>
+                <input type="date" name="unloading_date_to" className="input w-full" value={searchForm.unloading_date_to} onChange={handleSearchInput} />
               </div>
             </div>
 
