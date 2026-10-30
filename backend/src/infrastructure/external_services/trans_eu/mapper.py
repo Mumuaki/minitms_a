@@ -4,122 +4,76 @@ Converts raw dictionary data from parser into normalized domain structures.
 """
 from typing import Dict, Any, Optional
 import re
-import json
 from datetime import datetime
 
-FORBIDDEN_EQUIPMENT_KEYWORDS = [
-    "winda", "taillift", "tail-lift", "tail lift", "tailift", "liftgate", "lift gate",
-    "palletjack", "paleciak", "pallet jack", "hubwagen", "huckepack",
-    "гидроборт", "подъемник", "подъёмник", "рокла", "рохля", "лифтборт",
-]
-
-# «Рефрижератор» на всех языках: заявки с упоминанием в ЛЮБОМ месте карточки исключаются
-REEFER_KEYWORDS = [
-    # Русский / украинский
-    "рефрижератор",
-    # Английский
-    "reefer", "refrigerat", "fridge", "chiller", "frigorific",
-    "temp controlled", "temperature control", "temp-controlled", "temperature-controlled",
-    # Польский
-    "chłodnia", "chłodnicz", "chlodnia", "chlodnicz", "lodówka", "lodowka",
-    "mroźnia", "mroźn", "mroznia", "mrozn",
-    # Немецкий
-    "kühl", "kuehl", "kühlfahrzeug", "kuehlfahrzeug", "kühlauflieger", "kühlkoffer",
-    "kühlzug", "kühlanhänger", "kühlaggregat", "thermo",
-    # Итальянский / испанский / португальский / французский / румынский
-    "frigo", "frigorifero", "frigorífico", "frigorifico", "frigorífica",
-    "frigorifique", "frigider", "refrigerado", "refrigerato", "refrigere", "refrigerateur",
-    # Чешский / словацкий
-    "chladíren", "chladiren", "chladírensk", "chladirensk", "chladíc", "chladic",
-    "chladíř", "mrazíren", "mraziren", "mrazíc", "mrazic",
-    # Венгерский
-    "hűtő", "hűtött", "hűtős", "hutokocsi", "hutogep", "hűtőkocsi", "fagyaszt",
-    # Нидерландский
-    "koel", "gekoeld", "diepvries",
-    # Турецкий
-    "frigorifik", "soğutucu", "sogutucu", "soğutmalı", "sogutmali",
-    # Хорватский / сербский / боснийский
-    "hladnjača", "hladnjaca", "rashladni", "frižider", "frizider",
-    # Болгарский
-    "хладилен",
-    # Греческий
-    "ψυγείο", "ψυκτικό",
-    # Литовский / латышский
-    "šaldytuv", "saldytuv", "refrižerator", "refrizerator", "saldetava",
-    # Шведский / датский / норвежский
-    "kylbil", "kyltransport", "kylaggregat", "kylvagn", "kyld", "frysbil",
-    "køle", "kølevogn", "køletransport", "kjøle", "kjølevogn", "kjølebil",
-    # Финский / эстонский
-    "kylmä", "külmik", "kulmik", "külmutus", "kulmutus",
-]
-
-FORBIDDEN_KEYWORDS = FORBIDDEN_EQUIPMENT_KEYWORDS + REEFER_KEYWORDS
+from backend.src.domain.value_objects.body_type import normalize_body_type
+from backend.src.domain.value_objects.trans_eu_filter import is_excluded_trans_eu_body
 
 
-def _contains_forbidden_equipment(raw_data: Dict[str, Any]) -> bool:
-    text = json.dumps(raw_data, ensure_ascii=False).lower()
-    for kw in FORBIDDEN_KEYWORDS:
-        if kw.lower() in text:
-            return True
-    return False
+# A numeric token: a plain decimal ("900", "0.9", "850,5") or a thousands-
+# grouped decimal ("1 000", "1\u00a0000", "1 234,5"). Group separators are
+# space, NBSP and thin space and must separate 3-digit groups.
+_NUMBER_TOKEN = r'(\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)'
+
+# Weight in tons ("24t", "24 t", "0.15 т"). The unit must be followed by a
+# word boundary so "24Tent" is never parsed as "24t".
+_WEIGHT_TON_RE = re.compile(
+    rf'(?<![\d.,\-\u2212\u2013\u2014]){_NUMBER_TOKEN}(?![\d])\s*[tт](?![\w])',
+    re.IGNORECASE,
+)
+
+# Weight in kilograms ("900 kg", "850 kg", "850кг"). Both the Latin "kg" and
+# the Cyrillic "кг" units are accepted; an absent/unparseable unit never
+# becomes an invented zero.
+_WEIGHT_KG_RE = re.compile(
+    rf'(?<![\d.,\-\u2212\u2013\u2014]){_NUMBER_TOKEN}(?![\d])\s*(?:kg|кг)(?![\w])',
+    re.IGNORECASE,
+)
+
+# Length in loading metres / LDM ("4.8 ldm", "13,6 LDM", "4.8 погр. м").
+# Only unambiguous length units are accepted; a bare "м" is avoided because it
+# is ambiguous with cubic metres / seats etc.
+_LENGTH_RE = re.compile(
+    r'(?<![\d.,\-\u2212\u2013\u2014])(\d+(?:[.,]\d+)?)\s*(?:ldm|погр\.?\s*м|погрузочн\w*\s*м|loading\s+meters?|load\s+meters?)',
+    re.IGNORECASE,
+)
 
 
-MAX_CARGO_LENGTH_CM = 480
+_NEG_SIGNS = '-\u2212\u2013\u2014'
 
 
-def _contains_oversized_cargo(raw_data: Dict[str, Any]) -> bool:
-    """Груз длиннее 480 см, если длина указана явно (например 600x50x50, 610x20x20, 500 cm)."""
-    text = json.dumps(raw_data, ensure_ascii=False).lower()
-    # тройки/пары размеров: 600x50x50, 200x80x250cm, 210 cm x 105 cm x 55 cm, 1x 600x40x30 cm
-    for m in re.finditer(r'(?<![\d.,])(\d+(?:[.,]\d+)?)(?:\s*cm)?\s*[xх×]\s*(\d+(?:[.,]\d+)?)(?:\s*cm)?(?:\s*[xх×]\s*(\d+(?:[.,]\d+)?)(?:\s*cm)?)?', text):
-        vals = []
-        for g in (1, 2, 3):
-            if m.group(g):
-                vals.append(float(m.group(g).replace(',', '.')))
-        if vals and max(vals) > MAX_CARGO_LENGTH_CM:
-            return True
-    # одиночная явная длина: 600 cm / 600cm
-    for m in re.finditer(r'(?<![\d.,])(\d+(?:[.,]\d+)?)\s*cm\b', text):
-        if float(m.group(1).replace(',', '.')) > MAX_CARGO_LENGTH_CM:
-            return True
-    return False
+def _has_invalid_lead(text: str, match_start: int) -> bool:
+    """Return True when a numeric match has a forbidden leading context.
 
-
-def _extract_country_code(place_raw: Optional[str]) -> Optional[str]:
-    """AT 2432 Schwadorf -> AT"""
-    if not place_raw:
-        return None
-    m = re.match(r'^([A-Za-z]{2})\s+\d', place_raw.strip())
-    if m:
-        return m.group(1).upper()
-    m = re.match(r'^([A-Za-z]{2})\s*$', place_raw.strip())
-    if m:
-        return m.group(1).upper()
-    return None
+    A number must not be led (directly or through whitespace) by a sign/range
+    dash or by another numeric fragment, which would mark it as a negative
+    quantity, a range boundary or a malformed grouped value.
+    """
+    j = match_start - 1
+    while j >= 0 and text[j].isspace():
+        j -= 1
+    if j < 0:
+        return False
+    ch = text[j]
+    return ch.isdigit() or ch in _NEG_SIGNS
 
 
 def map_to_cargo(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Maps raw extracted data to a normalized Cargo dict (DTO compatible).
     """
-    
-    if _contains_forbidden_equipment(raw_data):
-        return None
-
-    if _contains_oversized_cargo(raw_data):
-        return None
 
     # 1. Price Normalization
     price_raw = raw_data.get("price_raw", "")
     price, currency = _parse_price(price_raw)
-    
+
     # 2. Distance
     dist_raw = raw_data.get("distance_raw", "")
     distance_km = _parse_distance(dist_raw)
 
     # 3. Dates (Simple pass-through or basic parsing)
     # Parsing dates requires specific format knowledge, passing raw for now if format unknown
-    
+
     # 4. Cargo Body/Weight parsing from "cargo_info_raw"
     body_type, weight = _parse_cargo_info(raw_data.get("cargo_info_raw", ""))
 
@@ -128,17 +82,16 @@ def map_to_cargo(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         "source": "trans.eu",
         "loading_place": {
             "raw": raw_data.get("loading_place_raw"),
-            "country_code": _extract_country_code(raw_data.get("loading_place_raw")),
+            # City/Zip/Country extraction would go here
         },
         "unloading_place": {
             "raw": raw_data.get("unloading_place_raw"),
-            "country_code": _extract_country_code(raw_data.get("unloading_place_raw")),
         },
-        "offer_url": raw_data.get("offer_url"),
         "loading_date_raw": raw_data.get("loading_date_raw"),
         "unloading_date_raw": raw_data.get("unloading_date_raw"),
         "body_type": body_type,
         "weight": weight,
+        "length_m": _parse_length_ldm(raw_data.get("cargo_info_raw", "")),
         "description": raw_data.get("description_raw"),
         "price": price,
         "currency": currency,
@@ -149,21 +102,22 @@ def map_to_cargo(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         "raw_data": raw_data # Keep raw validation
     }
 
+
 def _parse_price(price_str: Optional[str]):
     if not price_str:
         return None, "EUR"
-    
+
     # Remove whitespace
     clean = price_str.replace(" ", "").upper()
-    
+
     # Extract number
     currency = "EUR"
     is_pln = False
     amount = 0.0
-    
+
     if "PLN" in clean:
         is_pln = True
-    
+
     # Simple regex for number
     match = re.search(r'[\d\.,]+', clean)
     if match:
@@ -175,34 +129,90 @@ def _parse_price(price_str: Optional[str]):
                 amount = round(amount / 4.3, 2)
         except ValueError:
             pass
-            
+
     return amount, "EUR"
+
 
 def _parse_distance(dist_str: Optional[str]) -> Optional[int]:
     if not dist_str:
         return None
-    
+
     # "123 km"
     match = re.search(r'(\d+)', dist_str.replace(" ", ""))
     if match:
         return int(match.group(1))
     return None
 
+
+def _number_to_float(number_str: str) -> Optional[float]:
+    """Convert a matched numeric token to ``float`` or ``None`` on failure.
+
+    Thousands-grouped tokens (space/NBSP/thin-space separated) have their
+    separators removed and a comma is treated as the decimal point.
+    """
+    if not number_str:
+        return None
+    cleaned = re.sub(r'[\s\u00a0\u202f]', '', number_str).replace(",", ".")
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
 def _parse_cargo_info(info_str: Optional[str]):
-    # e.g. "0,1 т, цельномет, ящик, стандарт, штора"
-    if not info_str:
+    # e.g. "24t, Curtain, 13.6 ldm"
+    if info_str is None or not info_str.strip():
         return None, None
 
+    # Check raw forbidden-body tokens (e.g. "Ref") BEFORE normalizing: the
+    # normalizer can collapse "Tent, Ref" to canonical "Tent" and silently drop
+    # the excluded token. When the raw body is forbidden it is preserved
+    # verbatim so the shared admission policy rejects it downstream.
+    if is_excluded_trans_eu_body(info_str):
+        body = info_str
+    else:
+        body = normalize_body_type(info_str)
+        if body is None:
+            body = info_str
+
+    # Extract weight: tonnes are converted to kg; explicit kg values are used
+    # as-is. Missing/unknown, negative, ranged, grouped-fragment or multiple
+    # weights never become an invented zero: they stay ``None`` (unknown).
     weight = None
-    body = info_str
+    kg_matches = [
+        m for m in _WEIGHT_KG_RE.finditer(info_str)
+        if not _has_invalid_lead(info_str, m.start())
+    ]
+    ton_matches = [
+        m for m in _WEIGHT_TON_RE.finditer(info_str)
+        if not _has_invalid_lead(info_str, m.start())
+    ]
+    if len(kg_matches) + len(ton_matches) == 1:
+        if kg_matches:
+            weight = _number_to_float(kg_matches[0].group(1))
+        else:
+            tons = _number_to_float(ton_matches[0].group(1))
+            weight = None if tons is None else tons * 1000
 
-    # Извлекаем вес "0,1 т" / "24t" и убираем его из описания (типа кузова)
-    w_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*т', info_str, re.IGNORECASE)
-    if w_match:
-        try:
-            weight = float(w_match.group(1).replace(",", ".")) * 1000  # кг
-        except Exception:
-            pass
-        body = (info_str[:w_match.start()] + info_str[w_match.end():]).strip(" ,")
+    return body, weight
 
-    return body or None, weight
+
+def _parse_length_ldm(info_str: Optional[str]) -> Optional[float]:
+    """Parse a length/LDM value in metres, or ``None`` when it is unknown.
+
+    Accepts ``"4.8 ldm"``, ``"13,6 LDM"`` and ``"4.8 м"``. The value is never
+    rounded, clamped or defaulted to zero; an absent/unparseable length stays
+    ``None`` so callers treat it as unknown rather than as verified.
+    """
+    if info_str is None or not info_str.strip():
+        return None
+    matches = [
+        m for m in _LENGTH_RE.finditer(info_str)
+        if not _has_invalid_lead(info_str, m.start())
+    ]
+    if len(matches) != 1:
+        return None
+    try:
+        return float(matches[0].group(1).replace(",", "."))
+    except ValueError:
+        return None
