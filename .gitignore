@@ -117,3 +117,6 @@ playwright/.cache/
 alembic.ini.local
 
 
+
+# Local/runtime dumps that may contain secrets
+inspect.json
